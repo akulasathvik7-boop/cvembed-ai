@@ -1,53 +1,55 @@
-<!-- Coding by Samitha Randika | https://www.linkedin.com/in/samitha-randika-edirisinghe-b3a68a2b6 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Embed - Step 1</title>
+    <title>CV Embed | AI Resume Intelligence</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><span style="color: #00bf63;">CV</span>Embed</h1>
-        </header>
-
-        <header>
+            <div class="logo"><span>CV</span>Embed</div>
             <div class="steps">
-                <div class="step active">Step 1: Add Resume/CV</div>
-                <div class="step">Step 2: Add Job Description</div>
-                <div class="step">Step 3: Analyze</div>
+                <div class="step active">1. Add Resume</div>
+                <div class="step">2. Specify Job</div>
+                <div class="step">3. Analyze</div>
             </div>
         </header>
 
         <main>
-            <div class="upload-container">
-                <h2>Upload your resume to get started</h2>
-                <form action="/process_resume" method="post" enctype="multipart/form-data" class="upload-form">
-                    <div class="upload-option">
-                        <div class="upload-box">
+            <div class="glass-card">
+                <h2>Unlock your profile's potential</h2>
+                <p style="color: var(--text-muted); margin-bottom: 40px;">Our AI analyzes your experience against industry standards and specific job requirements to give you the competitive edge.</p>
+                
+                <form action="/process_resume" method="post" enctype="multipart/form-data">
+                    <div class="upload-wrapper">
+                        <div class="upload-box" onclick="document.getElementById('resume_file').click()">
                             <input type="file" id="resume_file" name="resume_file" accept=".pdf,.docx" style="display: none;">
-                            <div class="upload-icon">📄</div>
-                            <p class="upload-title">Upload your resume</p>
-                            <p class="upload-subtitle">as pdf or .docx file</p>
-                            <button type="button" class="browse-btn" onclick="document.getElementById('resume_file').click()">Browse Files</button>
+                            <span class="upload-icon">📄</span>
+                            <p class="upload-title">Upload Resume</p>
+                            <p class="upload-subtitle">Supports PDF & DOCX</p>
                         </div>
-                        <p class="or-divider">or</p>
-                        <div class="text-paste">
-                            <label for="resume_text">Paste resume text</label>
-                            <textarea id="resume_text" name="resume_text" rows="4" placeholder="Paste your resume content here..."></textarea>
+                        
+                        <div class="or-divider">OR</div>
+                        
+                        <div class="text-input-area">
+                            <textarea id="resume_text" name="resume_text" placeholder="Paste your resume content here..."></textarea>
                         </div>
                     </div>
                     
-                    <button type="submit" class="analyze-btn">Continue</button>
+                    <div style="text-align: center;">
+                        <button type="submit" class="btn-primary">
+                            Continue Analysis <span>→</span>
+                        </button>
+                    </div>
                 </form>
             </div>
         </main>
 
         <footer>
-            <p>CVEmbed © 2025 All rights reserved</p>
+            <p>&copy; 2025 CVEmbed AI. Precision Resume Matching Engine.</p>
         </footer>
     </div>
 </body>
-</html>
+</html>

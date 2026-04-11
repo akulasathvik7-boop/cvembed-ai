@@ -8,12 +8,13 @@ import logging
 from resume_processor import process_resume, process_jd
 from matching_engine import calculate_similarity, get_top_job_matches
 from config import MODEL_CONFIG
-from dotenv import load_dotenv
-
 try:
+    from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    pass
+    logger.warning("python-dotenv not found. Environment variables from .env will not be loaded.")
+except Exception as e:
+    logger.error(f"Error loading .env file: {e}")
 
 # Set up logging
 logging.basicConfig(
@@ -169,14 +170,20 @@ def generate_job_listings(job_title):
         ]
 
 def generate_local_analysis(resume_text, jd_text):
-
     """
     Analyzes the resume against the job description locally using NLP.
-    No API calls, 100% reliable.
+    Categorizes results for the modern dashboard.
     """
     try:
         from utils.text_processing import tokenize_text
         from collections import Counter
+        
+        # Skill taxonomies (simplified for local processing)
+        TAXONOMY = {
+            "technical": ["python", "java", "javascript", "react", "node", "sql", "mongodb", "aws", "docker", "kubernetes", "api", "rest", "graphql", "backend", "frontend", "fullstack", "devops", "machine", "learning", "data", "science"],
+            "soft_skills": ["leadership", "management", "communication", "team", "agile", "scrum", "problem", "solving", "analytical", "creativity", "collaboration", "initiative", "adaptability"],
+            "tools": ["git", "jira", "docker", "vscode", "postman", "figma", "jenkins", "terraform", "linux", "windows", "macos"]
+        }
         
         # Tokenize both texts
         resume_tokens = set(tokenize_text(resume_text))
@@ -184,42 +191,118 @@ def generate_local_analysis(resume_text, jd_text):
         jd_counter = Counter(jd_tokens)
         
         # Get most common keywords in JD (ignoring very short words)
-        jd_keywords = [word for word, count in jd_counter.most_common(20) if len(word) > 3]
+        jd_keywords = [word for word, count in jd_counter.most_common(50) if len(word) > 3]
         
-        # Identify matches and gaps
         strengths = []
         drawbacks = []
         missing_keywords = []
         
+        # Categorized scores for the radar chart
+        alignment = {
+            "technical": 0,
+            "soft_skills": 0,
+            "tools": 0,
+            "experience": 0
+        }
+        
+        matches = {cat: [] for cat in TAXONOMY}
+        gaps = {cat: [] for cat in TAXONOMY}
+
+        # Analyze against taxonomy
+        for category, keywords in TAXONOMY.items():
+            cat_matches = 0
+            cat_total = 0
+            for word in keywords:
+                if word in jd_tokens:
+                    cat_total += 1
+                    if word in resume_tokens:
+                        cat_matches += 1
+                        matches[category].append(word)
+                    else:
+                        gaps[category].append(word)
+            
+            # Simple scoring
+            alignment[category] = int((cat_matches / max(1, cat_total)) * 100)
+
+        # Experience placeholder score (based on commonality of JD keywords)
+        exp_matches = 0
         for word in jd_keywords:
             if word in resume_tokens:
-                if len(strengths) < 3:
-                    strengths.append(f"Strong alignment with key requirement: {word.capitalize()}")
+                exp_matches += 1
             else:
-                if len(drawbacks) < 3:
-                    drawbacks.append(f"Missing core technical requirement: {word.upper()}")
                 missing_keywords.append(word)
         
-        # Ensure we have at least some content
+        alignment["experience"] = int((exp_matches / max(1, len(jd_keywords))) * 100)
+        
+        # Generate summary lists for UI
+        for cat in matches:
+            if matches[cat]:
+                strengths.append(f"Strong match in {cat.replace('_', ' ')}: {', '.join(matches[cat][:3]).title()}")
+
+        # Generate drawbacks with more specific guidance
+        for cat in gaps:
+            if gaps[cat]:
+                gap_items = ', '.join(gaps[cat][:2]).title()
+                if cat == "technical":
+                    drawbacks.append(f"Missing technical skills: {gap_items}. Consider gaining hands-on experience or certifications.")
+                elif cat == "soft_skills":
+                    drawbacks.append(f"Untested soft skills: {gap_items}. Highlight these in your achievements or volunteer work.")
+                elif cat == "tools":
+                    drawbacks.append(f"Missing tools/platforms: {gap_items}. These are valuable additions to your skillset.")
+                else:
+                    drawbacks.append(f"Gap identified in {cat.replace('_', ' ')}: {gap_items}. Consider adding relevant experience.")
+
+        # Ensure fallback content
         if not strengths:
-            strengths = ["Resume structure is readable and processable.", "Found relevant experience markers."]
+            strengths = ["Resume structure is readable.", "Text was successfully parsed."]
         if not drawbacks:
-            drawbacks = ["Resume matches the primary keywords found in the job description."]
-            
-        # Generate actionable guidance
+            drawbacks = [
+                "Consider adding specific use cases or project examples to your resume.",
+                "Expand on quantifiable achievements and measurable results.",
+                "Include relevant certifications or training related to the role."
+            ]
+        
+        # Calculate overall score for dynamic guidance
+        overall_score = sum(alignment.values()) // len(alignment)
+        
+        # Generate score-based guidance
         guidance = []
-        if missing_keywords:
-            top_missing = missing_keywords[:3]
-            for word in top_missing:
-                guidance.append(f"Incorporate specific experience or projects related to '{word.capitalize()}' to strengthen your profile.")
+        
+        if overall_score < 40:
+            # Critical gaps
+            guidance = [
+                "⚠️ CRITICAL: This role requires significantly different expertise. Consider upskilling in core technical areas.",
+                f"Priority: Focus on these missing technical skills: {', '.join(gaps.get('technical', [])[:2]).title()}",
+                "Action: Pursue relevant certifications or take courses to bridge the major knowledge gaps."
+            ]
+        elif overall_score < 70:
+            # Moderate gaps
+            guidance = [
+                f"Priority: Strengthen your {gaps.get('technical', ['technical'])[0] if gaps.get('technical') else 'technical'} skills to improve alignment.",
+                f"Gap remediation: Work on {', '.join(gaps.get('soft_skills', ['communication'])[:1]).lower()} to enhance candidacy.",
+                "Enhancement: Add quantifiable metrics and specific project impact to your resume (e.g., 'improved performance by 30%')."
+            ]
         else:
-            guidance = ["Your resume is well-aligned. Focus on quantifying your achievements in the next interview."]
+            # Strong alignment
+            if missing_keywords:
+                guidance = [
+                    "✅ Strong alignment! You're well-suited for this role.",
+                    f"Polish: Highlight proven experience with {', '.join(missing_keywords[:1]).title() if missing_keywords else 'relevant tools'}.",
+                    "Optimization: Emphasize measurable achievements and leadership contributions to stand out."
+                ]
+            else:
+                guidance = [
+                    "✅ Excellent match! Your profile aligns well with this opportunity.",
+                    "Next step: Prepare case studies showcasing your most relevant projects.",
+                    "Recommendation: Emphasize your unique value propositions and achievements in interviews."
+                ]
             
         return {
             "strengths": strengths[:3],
             "drawbacks": drawbacks[:3],
             "guidance": guidance[:3],
-            "missing_keywords": missing_keywords[:10]
+            "missing_keywords": missing_keywords[:12],
+            "alignment": alignment
         }
         
     except Exception as e:
@@ -228,8 +311,10 @@ def generate_local_analysis(resume_text, jd_text):
             "strengths": ["Basic resume analysis complete."],
             "drawbacks": ["Detailed gap analysis failed."],
             "guidance": ["Ensure your resume explicitly mentions the direct keywords from the job description."],
-            "missing_keywords": []
+            "missing_keywords": [],
+            "alignment": {"technical": 50, "soft_skills": 50, "tools": 50, "experience": 50}
         }
+
 
 
 

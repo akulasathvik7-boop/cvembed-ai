@@ -1,62 +1,64 @@
-<!-- Coding by Samitha Randika | https://www.linkedin.com/in/samitha-randika-edirisinghe-b3a68a2b6 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Embed - Step 2</title>
+    <title>CV Embed | Define Job Parameters</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><span style="color: #00bf63;">CV</span>Embed</h1>
-        </header>
-
-        <header>
+            <div class="logo"><span>CV</span>Embed</div>
             <div class="steps">
-                <div class="step completed">Step 1: Add Resume/CV</div>
-                <div class="step active">Step 2: Add Job Description</div>
-                <div class="step">Step 3: Analyze</div>
+                <div class="step completed">1. Add Resume</div>
+                <div class="step active">2. Specify Job</div>
+                <div class="step">3. Analyze</div>
             </div>
         </header>
 
         <main>
-            <div class="upload-container">
-                <h2>Add Job Description</h2>
-                <form action="/process_jd" method="post" enctype="multipart/form-data" class="upload-form">
-                    <div class="model-selection">
-                        <label for="model_type">Matching Algorithm:</label>
+            <div class="glass-card">
+                <h2>Target Job Specification</h2>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">Choose a matching engine and provide the job requirements to calculate your compatibility score.</p>
+                
+                <form action="/process_jd" method="post" enctype="multipart/form-data">
+                    <div style="max-width: 400px; margin: 0 auto 40px;">
+                        <label for="model_type" style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: var(--primary-light);">Matching Algorithm</label>
                         <select id="model_type" name="model_type">
-                            <option value="sbert">SBERT (Recommended)</option>
-                            <option value="glove">GloVe</option>
-                            <option value="doc2vec">Doc2Vec</option>
+                            <option value="sbert">SBERT Optimizer (Deep Learning)</option>
+                            <option value="glove">GloVe Semantic Vectoring</option>
+                            <option value="doc2vec">Doc2Vec Document Embedding</option>
                         </select>
                     </div>
-                    
-                    <div class="upload-option">
-                        <div class="upload-box">
+
+                    <div class="upload-wrapper">
+                        <div class="upload-box" onclick="document.getElementById('jd_file').click()">
                             <input type="file" id="jd_file" name="jd_file" accept=".pdf,.docx,.txt" style="display: none;">
-                            <div class="upload-icon">📋</div>
-                            <p class="upload-title">Upload Job Description</p>
-                            <p class="upload-subtitle">(optional)</p>
-                            <button type="button" class="browse-btn" onclick="document.getElementById('jd_file').click()">Browse Files</button>
+                            <span class="upload-icon">📋</span>
+                            <p class="upload-title">Import Requirements</p>
+                            <p class="upload-subtitle">PDF, DOCX or TXT</p>
                         </div>
-                        <p class="or-divider">or</p>
-                        <div class="text-paste">
-                            <label for="jd_text">Paste Job Description</label>
-                            <textarea id="jd_text" name="jd_text" rows="4" placeholder="Paste job description here..."></textarea>
+                        
+                        <div class="or-divider">OR</div>
+                        
+                        <div class="text-input-area">
+                            <textarea id="jd_text" name="jd_text" placeholder="Paste the job description or specific requirements here..."></textarea>
                         </div>
                     </div>
                     
-                    <button type="submit" class="analyze-btn">Analyze</button>
+                    <div style="text-align: center;">
+                        <button type="submit" class="btn-primary">
+                            Run AI Intelligence Match <span>✨</span>
+                        </button>
+                    </div>
                 </form>
             </div>
         </main>
 
         <footer>
-            <p>CVEmbed © 2025 All rights reserved</p>
+            <p>&copy; 2025 CVEmbed AI. Precision Resume Matching Engine.</p>
         </footer>
     </div>
 </body>
-</html>
+</html>

@@ -1,142 +1,174 @@
-<!-- Coding by Samitha Randika | https://www.linkedin.com/in/samitha-randika-edirisinghe-b3a68a2b6 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Embed - Results</title>
+    <title>CV Embed | Analysis Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Load Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><span style="color: #00bf63;">CV</span>Embed</h1>
+            <div class="logo"><span>CV</span>Embed</div>
+            <div class="steps">
+                <div class="step completed">1. Add Resume</div>
+                <div class="step completed">2. Specify Job</div>
+                <div class="step active">3. Analyze</div>
+            </div>
         </header>
 
         <main>
-            <div class="result-header">
-                <h2>Your Result</h2>
-                <div class="model-info">
-                    Algorithm: {{ session.get('model_type', 'SBERT') | upper }}
-                </div>
-                <div class="score-circle">
-                    <div class="score-text">{{ similarity_score }}%</div>
-                </div>
-            </div>
-            
-            <div class="result-message">
-                {% if similarity_score < 30 %}
-                <p>It seems your resume and this job description have some differences. Don't be discouraged - consider tweaking your resume to highlight relevant experiences or explore other opportunities that might be a better fit.</p>
-                {% elif similarity_score < 60 %}
-                <p>Your resume has some alignment with the job description. Try highlighting more relevant skills and experiences to improve your match.</p>
-                {% else %}
-                <p>Great match! Your resume aligns well with the job requirements.</p>
-                {% endif %}
-            </div>
-            
-            <div class="job-matches">
-                <h3>Your Resume Match With This Job Description</h3>
-                <ol class="match-list">
-                    {% for job, score in top_matches %}
-                    <li>
-                        <span class="job-title">{{ job }}</span>
-                        <span class="similarity-score">Similarity {{ score }}%</span>
-                    </li>
-                    {% endfor %}
-                </ol>
-            </div>
-            
-            <div class="resume-comparison">
-                <div class="resume-section">
-                    <h4>Your Resume</h4>
-                    <div class="content-box">{{ resume_text }}</div>
-                </div>
-                
-                <div class="resume-section">
-                    <h4>Job Description</h4>
-                    <div class="content-box">{{ jd_text }}</div>
-                </div>
-            </div>
+            <div class="glass-card">
+                <div class="dashboard-grid">
+                    <!-- Left: Main Results -->
+                    <div class="score-panel">
+                        <h2>Analysis Complete</h2>
+                        <div class="radial-score">
+                            <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5" />
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-dasharray="{{ similarity_score }}, 100" />
+                            </svg>
+                            <div class="score-inner">
+                                <span class="score-value">{{ similarity_score }}%</span>
+                                <span class="score-label">MATCH SCORE</span>
+                            </div>
+                        </div>
+                        <div class="model-info" style="margin-top: 20px;">
+                            ALGORITHM: {{ session.get('model_type', 'SBERT') | upper }}
+                        </div>
+                        
+                        <div style="margin-top: 30px; text-align: center;">
+                            {% if similarity_score < 40 %}
+                                <p style="color: var(--danger); font-weight: 600;">Critical alignment gaps detected.</p>
+                            {% elif similarity_score < 70 %}
+                                <p style="color: var(--warning); font-weight: 600;">Moderate alignment. Optimization recommended.</p>
+                            {% else %}
+                                <p style="color: var(--success); font-weight: 600;">Optimal profile alignment detected.</p>
+                            {% endif %}
+                        </div>
+                    </div>
 
-            {% if resume_feedback %}
-            <div class="ai-analysis">
-                <h3>NLP Skill Gap Analysis & Guidance</h3>
+                    <!-- Right: Skill Radar -->
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
 
-                
+                <!-- Analysis Details -->
                 <div class="analysis-grid">
-                    <div class="analysis-card strengths">
-                        <h4>✅ Key Strengths</h4>
-                        <ul>
+                    <div class="analysis-card card-strengths">
+                        <h4><span>✅</span> Key Strengths</h4>
+                        <ul class="analysis-list">
                             {% for strength in resume_feedback.strengths %}
                             <li>{{ strength }}</li>
                             {% endfor %}
                         </ul>
                     </div>
                     
-                    <div class="analysis-card drawbacks">
-                        <h4>⚠️ Drawbacks & Gaps</h4>
-                        <ul>
+                    <div class="analysis-card card-gaps">
+                        <h4><span>⚠️</span> Skill Gaps</h4>
+                        <ul class="analysis-list">
                             {% for drawback in resume_feedback.drawbacks %}
                             <li>{{ drawback }}</li>
                             {% endfor %}
                         </ul>
                     </div>
                     
-                    <div class="analysis-card guidance">
-                        <h4>💡 Actionable Guidance</h4>
-                        <ul>
+                    <div class="analysis-card card-guidance">
+                        <h4><span>💡</span> Optimization Path</h4>
+                        <ul class="analysis-list">
                             {% for guide in resume_feedback.guidance %}
                             <li>{{ guide }}</li>
                             {% endfor %}
                         </ul>
                     </div>
-                    
-                    {% if resume_feedback.missing_keywords %}
-                    <div class="analysis-card keywords">
-                        <h4>🔑 Missing Keywords</h4>
-                        <div class="keyword-tags">
-                            {% for keyword in resume_feedback.missing_keywords %}
-                            <span class="keyword-tag">{{ keyword }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
-            </div>
-            {% endif %}
 
-
-            <!-- Add this section after the job matches section -->
-            <div class="job-opportunities">
-                <h3>Job Opportunities</h3>
-                {% if job_listings %}
-                <div class="job-listings">
-                    {% for job in job_listings %}
-                    <div class="job-card">
-                        <div class="job-header">
-                            <h4>{{ job.title }}</h4>
-                            <span class="company">{{ job.company }}</span>
-                        </div>
-                        <div class="job-details">
-                            <span class="location">📍 {{ job.location }}</span>
-                            <a href="{{ job.apply_url }}" target="_blank" class="apply-btn">Apply Now</a>
-                        </div>
+                <!-- Keywords -->
+                {% if resume_feedback.missing_keywords %}
+                <div style="margin-top: 40px;">
+                    <h4 style="margin-bottom: 20px;">Top Missing Keywords</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        {% for keyword in resume_feedback.missing_keywords %}
+                        <span style="background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 50px; border: 1px solid var(--glass-border); font-size: 0.85rem; font-weight: 600;">{{ keyword|upper }}</span>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <p>No job listings found. Try another job title.</p>
                 {% endif %}
             </div>
-            
-            <div class="actions">
-                <button onclick="window.location.href='/'">Analyze More</button>
+
+            <!-- Job Listings -->
+            <div class="job-matches">
+                <h3 style="margin-bottom: 25px;">Recommended Opportunities</h3>
+                {% if job_listings %}
+                    {% for job in job_listings %}
+                    <div class="job-card">
+                        <div class="job-info">
+                            <h5>{{ job.title }}</h5>
+                            <div class="job-meta">{{ job.company }} • {{ job.location }}</div>
+                        </div>
+                        <a href="{{ job.apply_url }}" target="_blank" class="btn-secondary">View Role</a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: var(--text-muted);">No live opportunities found for this profile.</p>
+                {% endif %}
+            </div>
+
+            <div style="text-align: center; margin-top: 50px;">
+                <a href="/" class="btn-primary" style="text-decoration: none;">New Analysis</a>
             </div>
         </main>
 
         <footer>
-            <p>CVEmbed © 2025 All rights reserved</p>
+            <p>&copy; 2025 CVEmbed AI. Precision Resume Matching Engine.</p>
         </footer>
     </div>
+
+    <!-- Chart Implementation -->
+    <script>
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        const alignmentData = {{ resume_feedback.alignment | tojson }};
+        
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Technical', 'Soft Skills', 'Tools', 'Experience'],
+                datasets: [{
+                    label: 'Match Level',
+                    data: [
+                        alignmentData.technical, 
+                        alignmentData.soft_skills, 
+                        alignmentData.tools, 
+                        alignmentData.experience
+                    ],
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                    pointBorderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        pointLabels: { color: '#94a3b8', font: { size: 12, weight: '600' } },
+                        ticks: { display: false, stepSize: 20 },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    </script>
 </body>
-</html>
+</html>

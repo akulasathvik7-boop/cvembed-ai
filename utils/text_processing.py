@@ -5,8 +5,12 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import string
 
-nltk.download('punkt', quiet=True)
-nltk.download('stopwords', quiet=True)
+try:
+    nltk.download('punkt', quiet=True)
+    nltk.download('stopwords', quiet=True)
+except Exception as e:
+    import logging
+    logging.getLogger(__name__).warning(f"NLTK download failed. Ensure you have internet connection or models are pre-installed: {e}")
 
 def clean_text(text):
     if not isinstance(text, str):
