@@ -10,7 +10,8 @@ DATASETS = [
 ]
 
 MODEL_CONFIG = {
-    "active_model": "sbert",
+    "active_model": "glove",
+
     "sbert_path": "trained_models/sbert",
     "glove_path": "trained_models/glove.model",
     "doc2vec_path": "trained_models/doc2vec.model",

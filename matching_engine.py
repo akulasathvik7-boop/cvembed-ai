@@ -5,38 +5,60 @@ import logging
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from config import MODEL_CONFIG
-from model.inference import sbert_inference, glove_inference, doc2vec_inference
 from utils.text_processing import tokenize_text
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize models
-MODELS = {
-    "sbert": sbert_inference.load_model(MODEL_CONFIG['sbert_path']),
-    "glove": glove_inference.load_model(MODEL_CONFIG['glove_path']),
-    "doc2vec": doc2vec_inference.load_model(MODEL_CONFIG['doc2vec_path'])
-}
-
 # Job embeddings cache
 JOB_EMBEDDINGS = {}
 
+# Lazy model loading
+_LOADED_MODELS = {}
+
+def get_model(model_type):
+    """Lazy load model on demand"""
+    if model_type not in _LOADED_MODELS:
+        logger.info(f"Lazy loading {model_type} model...")
+        try:
+            if model_type == "sbert":
+                from model.inference import sbert_inference
+                _LOADED_MODELS[model_type] = sbert_inference.load_model(MODEL_CONFIG['sbert_path'])
+            elif model_type == "glove":
+                from model.inference import glove_inference
+                _LOADED_MODELS[model_type] = glove_inference.load_model(MODEL_CONFIG['glove_path'])
+            elif model_type == "doc2vec":
+                from model.inference import doc2vec_inference
+                _LOADED_MODELS[model_type] = doc2vec_inference.load_model(MODEL_CONFIG['doc2vec_path'])
+        except Exception as e:
+            logger.error(f"Failed to lazy load {model_type}: {e}", exc_info=True)
+            _LOADED_MODELS[model_type] = None
+            
+    return _LOADED_MODELS.get(model_type)
+
+
+
 def get_model_embedding(model_type, text):
     """Get embedding based on model type"""
-    if model_type not in MODELS or MODELS[model_type] is None:
+    model = get_model(model_type)
+    if model is None:
         return None
     
     try:
         if model_type == "sbert":
-            return MODELS[model_type].encode([text])[0]
+            return model.encode([text])[0]
         elif model_type == "glove":
+            from model.inference import glove_inference
             tokens = tokenize_text(text)
-            return glove_inference.average_embeddings(MODELS[model_type], tokens)
+            return glove_inference.average_embeddings(model, tokens)
         elif model_type == "doc2vec":
+            from model.inference import doc2vec_inference
             # CORRECTED: Changed 'steps' to 'epochs'
+
             return doc2vec_inference.infer_vector(
-                MODELS[model_type], 
+                model, 
                 text,
                 epochs=50,  # Fixed parameter name
                 alpha=0.025
@@ -45,36 +67,44 @@ def get_model_embedding(model_type, text):
         logger.error(f"Error getting embedding for {model_type}: {e}")
         return None
 
+
 def calculate_similarity(resume_text, jd_text, model_type=None):
     """Calculate similarity between resume and JD"""
     if not model_type:
         model_type = MODEL_CONFIG['active_model']
     
-    if model_type not in MODELS or MODELS[model_type] is None:
+    model = get_model(model_type)
+    if model is None:
         logger.error(f"Model {model_type} not available")
         return 0.0
     
     try:
         if model_type == "sbert":
-            return sbert_inference.calculate_similarity(MODELS[model_type], resume_text, jd_text)
+            from model.inference import sbert_inference
+            return sbert_inference.calculate_similarity(model, resume_text, jd_text)
         elif model_type == "glove":
-            return glove_inference.calculate_text_similarity(MODELS[model_type], resume_text, jd_text)
+            from model.inference import glove_inference
+            return glove_inference.calculate_text_similarity(model, resume_text, jd_text)
         elif model_type == "doc2vec":
+            from model.inference import doc2vec_inference
             # Use the improved Doc2Vec similarity function
-            return doc2vec_inference.calculate_similarity(MODELS[model_type], resume_text, jd_text)
+            return doc2vec_inference.calculate_similarity(model, resume_text, jd_text)
+
         else:
             logger.error(f"Unknown model type: {model_type}")
             return 0.0
     except Exception as e:
         logger.error(f"Similarity calculation error: {e}")
         return 0.0
+
     
 def get_top_job_matches(resume_text, model_type=None, top_n=5):
     """Get top job matches for resume"""
     if not model_type:
         model_type = MODEL_CONFIG['active_model']
     
-    if model_type not in MODELS or MODELS[model_type] is None:
+    model = get_model(model_type)
+    if model is None:
         logger.error(f"Model {model_type} not available")
         return []
     
@@ -87,14 +117,19 @@ def get_top_job_matches(resume_text, model_type=None, top_n=5):
         # Get job embeddings (cached)
         if model_type not in JOB_EMBEDDINGS:
             if model_type == "sbert":
+                from model.inference import sbert_inference
                 JOB_EMBEDDINGS[model_type] = sbert_inference.get_job_embeddings(
-                    MODELS[model_type], MODEL_CONFIG['job_taxonomy'])
+                    model, MODEL_CONFIG['job_taxonomy'])
             elif model_type == "glove":
+                from model.inference import glove_inference
                 JOB_EMBEDDINGS[model_type] = glove_inference.get_job_embeddings(
-                    MODELS[model_type], MODEL_CONFIG['job_taxonomy'])
+                    model, MODEL_CONFIG['job_taxonomy'])
             elif model_type == "doc2vec":
+                from model.inference import doc2vec_inference
                 JOB_EMBEDDINGS[model_type] = doc2vec_inference.get_job_embeddings(
-                    MODELS[model_type], MODEL_CONFIG['job_taxonomy'])
+                    model, MODEL_CONFIG['job_taxonomy'])
+
+
         
         # Calculate similarities
         similarities = cosine_similarity([resume_embedding], JOB_EMBEDDINGS[model_type])[0]

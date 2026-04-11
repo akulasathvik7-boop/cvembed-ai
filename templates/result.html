@@ -58,6 +58,54 @@
                 </div>
             </div>
 
+            {% if resume_feedback %}
+            <div class="ai-analysis">
+                <h3>NLP Skill Gap Analysis & Guidance</h3>
+
+                
+                <div class="analysis-grid">
+                    <div class="analysis-card strengths">
+                        <h4>✅ Key Strengths</h4>
+                        <ul>
+                            {% for strength in resume_feedback.strengths %}
+                            <li>{{ strength }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="analysis-card drawbacks">
+                        <h4>⚠️ Drawbacks & Gaps</h4>
+                        <ul>
+                            {% for drawback in resume_feedback.drawbacks %}
+                            <li>{{ drawback }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="analysis-card guidance">
+                        <h4>💡 Actionable Guidance</h4>
+                        <ul>
+                            {% for guide in resume_feedback.guidance %}
+                            <li>{{ guide }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    {% if resume_feedback.missing_keywords %}
+                    <div class="analysis-card keywords">
+                        <h4>🔑 Missing Keywords</h4>
+                        <div class="keyword-tags">
+                            {% for keyword in resume_feedback.missing_keywords %}
+                            <span class="keyword-tag">{{ keyword }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+
             <!-- Add this section after the job matches section -->
             <div class="job-opportunities">
                 <h3>Job Opportunities</h3>

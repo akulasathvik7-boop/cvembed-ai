@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Logs
+*.log
+app.log
+
+# Large Model Files (ML Models)
+trained_models/
+model/
+*.pkl
+*.model
+job_embeddings.pkl
+
+# User Uploads
+uploads/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env

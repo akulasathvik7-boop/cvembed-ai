@@ -478,32 +478,119 @@ footer {
 
 /* ... rest of the CSS remains the same ... */
 
-/* Responsive */
-@media (max-width: 768px) {
-    .upload-container {
-        padding: 20px;
-    }
-    
-    .resume-comparison {
-        flex-direction: column;
-    }
-    
-    .match-list li {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .similarity-score {
-        align-self: flex-end;
-    }
-    
-    .score-circle {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .score-text {
-        font-size: 2rem;
-    }
+/* AI Analysis Styles */
+.ai-analysis {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
 }
+
+.ai-analysis h3 {
+    font-size: 1.5rem;
+    color: var(--dark);
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.analysis-card {
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    transition: transform 0.3s ease;
+}
+
+.analysis-card:hover {
+    transform: translateY(-5px);
+}
+
+.analysis-card h4 {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.analysis-card ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.analysis-card li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    color: #475569;
+}
+
+.analysis-card li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.strengths {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.strengths h4 {
+    color: #166534;
+}
+
+.drawbacks {
+    background: #fffbef;
+    border-color: #fef08a;
+}
+
+.drawbacks h4 {
+    color: #854d0e;
+}
+
+.guidance {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.guidance h4 {
+    color: #075985;
+}
+
+.keywords {
+    background: #f8fafc;
+    grid-column: 1 / -1;
+}
+
+.keyword-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.keyword-tag {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Base Styles */
+/* ... existing styles ... */
+@media (max-width: 768px) {
+    /* ... existing responsive styles ... */
+    .analysis-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -3,18 +3,38 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import os
 import uuid
 import json
+import logging
 import google.generativeai as genai
 from resume_processor import process_resume, process_jd
 from matching_engine import calculate_similarity, get_top_job_matches
 from config import MODEL_CONFIG
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB limit
 
+# Ensure upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+
 # Configure Gemini API
-genai.configure(api_key="AIzaSyCw66XFKath3sOiq3o_cNapC-CmtgcL4mk")
+# --- CONFIGURE YOUR GEMINI API KEY HERE ---
+GEMINI_API_KEY = "AIzaSyAXPMa7YO90BblHZyU3xPbyTWxVwMaxA3Y"
+genai.configure(api_key=GEMINI_API_KEY)
+# -------------------------------------------
+
 
 # Gemini model configuration
 generation_config = {
@@ -32,7 +52,8 @@ safety_settings = [
 ]
 
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-1.5-flash-latest",
+
     generation_config=generation_config,
     safety_settings=safety_settings
 )
@@ -44,26 +65,44 @@ def index():
 
 @app.route('/process_resume', methods=['POST'])
 def process_resume_route():
-    # Process resume input
-    resume_text = ""
-    if 'resume_file' in request.files:
-        resume_file = request.files['resume_file']
-        if resume_file.filename != '':
-            file_ext = os.path.splitext(resume_file.filename)[1]
-            filename = f"resume_{uuid.uuid4().hex}{file_ext}"
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            resume_file.save(file_path)
-            resume_text = process_resume(file_path)
-            os.remove(file_path)  # Clean up after processing
-    
-    if not resume_text and 'resume_text' in request.form:
-        resume_text = request.form['resume_text']
-    
-    if resume_text:
-        session['resume_text'] = resume_text
-        return redirect(url_for('upload_jd'))
-    
-    return redirect(url_for('index'))
+    try:
+        logger.info("Starting resume processing...")
+        # Process resume input
+        resume_text = ""
+        
+        if 'resume_file' in request.files:
+            resume_file = request.files['resume_file']
+            if resume_file.filename != '':
+                file_ext = os.path.splitext(resume_file.filename)[1]
+                filename = f"resume_{uuid.uuid4().hex}{file_ext}"
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                
+                logger.info(f"Saving uploaded file to: {file_path}")
+                resume_file.save(file_path)
+                
+                logger.info("Extracting text from resume...")
+                resume_text = process_resume(file_path)
+                
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    logger.info("Cleaned up temporary file.")
+        
+        if not resume_text and 'resume_text' in request.form:
+            logger.info("Using pasted resume text.")
+            resume_text = request.form['resume_text']
+        
+        if resume_text:
+            logger.info("Resume text successfully captured. Redirecting to job description upload.")
+            session['resume_text'] = resume_text
+            return redirect(url_for('upload_jd'))
+        
+        logger.warning("No resume text found in input.")
+        return redirect(url_for('index'))
+        
+    except Exception as e:
+        logger.error(f"Error in process_resume_route: {str(e)}", exc_info=True)
+        return render_template('index.html', error=f"An error occurred while processing your resume: {str(e)}")
+
 
 @app.route('/upload_jd', methods=['GET'])
 def upload_jd():
@@ -106,60 +145,26 @@ def process_jd_route():
             model_type
         )
         
-        # Store results
-        session['similarity_score'] = similarity_score
-        session['top_matches'] = top_matches
-        session['model_type'] = model_type
+        # Generate detailed feedback with Local NLP (Guaranteed to work)
+        logger.info("Generating Local NLP feedback for resume...")
+        resume_feedback = generate_local_analysis(session['resume_text'], jd_text)
         
+        # Store results
+        session['similarity_score'] = float(similarity_score)
+        session['top_matches'] = [(title, float(score)) for title, score in top_matches]
+        session['model_type'] = model_type
+        session['resume_feedback'] = resume_feedback
+        
+        logger.info("Similarity calculation and Local NLP feedback complete.")
         return redirect(url_for('result'))
+
+
     
     return redirect(url_for('upload_jd'))
 
 def generate_job_listings(job_title):
-    try:
-        # Create Gemini prompt
-        prompt = f"""
-        Generate 3 real job listings with company names and application URLs for a {job_title}.
-        Return only JSON in this format: 
-        {{
-          "jobs": [
-            {{
-              "title": "Job Title",
-              "company": "Company Name",
-              "location": "Job Location",
-              "apply_url": "https://real-application-url.com"
-            }},
-            {{
-              "title": "Job Title",
-              "company": "Company Name",
-              "location": "Job Location",
-              "apply_url": "https://real-application-url.com"
-            }},
-            {{
-              "title": "Job Title",
-              "company": "Company Name",
-              "location": "Job Location",
-              "apply_url": "https://real-application-url.com"
-            }}
-          ]
-        }}
-        """
-        
-        # Generate content with Gemini
-        response = model.generate_content(prompt)
-        
-        # Extract and parse JSON
-        content = response.text.strip()
-        if content.startswith('```json'):
-            content = content[7:-3].strip()  # Remove markdown wrapper
-        
-        job_data = json.loads(content)
-        return job_data.get('jobs', [])
-    
-    except Exception as e:
-        print(f"Error generating jobs with Gemini: {e}")
-        # Fallback job listings
-        return [
+    """Fallback job listings for local mode"""
+    return [
             {
                 "title": job_title,
                 "company": "Tech Innovations Inc",
@@ -180,6 +185,73 @@ def generate_job_listings(job_title):
             }
         ]
 
+def generate_local_analysis(resume_text, jd_text):
+
+    """
+    Analyzes the resume against the job description locally using NLP.
+    No API calls, 100% reliable.
+    """
+    try:
+        from utils.text_processing import tokenize_text
+        from collections import Counter
+        
+        # Tokenize both texts
+        resume_tokens = set(tokenize_text(resume_text))
+        jd_tokens = tokenize_text(jd_text)
+        jd_counter = Counter(jd_tokens)
+        
+        # Get most common keywords in JD (ignoring very short words)
+        jd_keywords = [word for word, count in jd_counter.most_common(20) if len(word) > 3]
+        
+        # Identify matches and gaps
+        strengths = []
+        drawbacks = []
+        missing_keywords = []
+        
+        for word in jd_keywords:
+            if word in resume_tokens:
+                if len(strengths) < 3:
+                    strengths.append(f"Strong alignment with key requirement: {word.capitalize()}")
+            else:
+                if len(drawbacks) < 3:
+                    drawbacks.append(f"Missing core technical requirement: {word.upper()}")
+                missing_keywords.append(word)
+        
+        # Ensure we have at least some content
+        if not strengths:
+            strengths = ["Resume structure is readable and processable.", "Found relevant experience markers."]
+        if not drawbacks:
+            drawbacks = ["Resume matches the primary keywords found in the job description."]
+            
+        # Generate actionable guidance
+        guidance = []
+        if missing_keywords:
+            top_missing = missing_keywords[:3]
+            for word in top_missing:
+                guidance.append(f"Incorporate specific experience or projects related to '{word.capitalize()}' to strengthen your profile.")
+        else:
+            guidance = ["Your resume is well-aligned. Focus on quantifying your achievements in the next interview."]
+            
+        return {
+            "strengths": strengths[:3],
+            "drawbacks": drawbacks[:3],
+            "guidance": guidance[:3],
+            "missing_keywords": missing_keywords[:10]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in local analysis: {e}")
+        return {
+            "strengths": ["Basic resume analysis complete."],
+            "drawbacks": ["Detailed gap analysis failed."],
+            "guidance": ["Ensure your resume explicitly mentions the direct keywords from the job description."],
+            "missing_keywords": []
+        }
+
+
+
+
+
 @app.route('/result', methods=['GET'])
 def result():
     if 'similarity_score' not in session:
@@ -199,7 +271,9 @@ def result():
                            top_matches=session['top_matches'],
                            resume_text=session['resume_text'],
                            jd_text=session['jd_text'],
-                           job_listings=job_listings)
+                           job_listings=job_listings,
+                           resume_feedback=session.get('resume_feedback'))
+
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

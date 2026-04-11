@@ -1,0 +1,16 @@
+JOB DESCRIPTION: SENIOR PYTHON DEVELOPER
+Company: FutureAI Solutions
+Location: Remote / San Francisco
+
+WE ARE LOOKING FOR:
+A passionate Python Developer to join our core AI team. You will be responsible for building robust backends and integrating cutting-edge machine learning models into our production environment.
+
+CORE REQUIREMENTS:
+- 3+ years of experience with Python and Flask or Django.
+- Strong knowledge of MongoDB and database optimization.
+- Experience with NLP (Natural Language Processing) and AI libraries such as NLTK, Spacy, or Transformers.
+- Familiarity with cloud infrastructure (AWS/Azure).
+- Knowledge of Docker and Kubernetes is a plus.
+
+SKILLS WE VALUE:
+Machine Learning, Backend Architecture, API Design, Scalable Systems, Unit Testing.

@@ -1,0 +1,23 @@
+JOHN DOE - PYTHON DEVELOPER
+Email: john.doe@example.com | Phone: +1-234-567-890
+Location: San Francisco, CA
+
+PROFESSIONAL SUMMARY:
+Experienced Python Developer with 4+ years of expertise in building scalable web applications and AI integrated systems. Proficient in Flask, MongoDB, and NLP.
+
+TECHNICAL SKILLS:
+Languages: Python, JavaScript, SQL.
+Frameworks: Flask, Django, React.
+Database: MongoDB, PostgreSQL.
+AI/ML: NLTK, Scikit-Learn, TensorFlow.
+Tools: Git, Docker, AWS.
+
+WORK EXPERIENCE:
+Senior Software Engineer | TechCorp | 2021 - Present
+- Led a team of 3 developers to build a real-time analytics dashboard using Flask and React.
+- Integrated AI models for sentiment analysis using NLTK, improving customer feedback accuracy by 30%.
+- Optimized database queries in MongoDB, reducing latency by 45%.
+
+Software Developer | InnovateSoft | 2019 - 2021
+- Developed RESTful APIs for a high-traffic e-commerce platform.
+- Managed server deployments on AWS EC2 and S3.
