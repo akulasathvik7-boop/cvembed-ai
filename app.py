@@ -4,10 +4,16 @@ import os
 import uuid
 import json
 import logging
-import google.generativeai as genai
+
 from resume_processor import process_resume, process_jd
 from matching_engine import calculate_similarity, get_top_job_matches
 from config import MODEL_CONFIG
+from dotenv import load_dotenv
+
+try:
+    load_dotenv()
+except ImportError:
+    pass
 
 # Set up logging
 logging.basicConfig(
@@ -29,34 +35,11 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB limit
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 
-# Configure Gemini API
-# --- CONFIGURE YOUR GEMINI API KEY HERE ---
-GEMINI_API_KEY = "AIzaSyAXPMa7YO90BblHZyU3xPbyTWxVwMaxA3Y"
-genai.configure(api_key=GEMINI_API_KEY)
-# -------------------------------------------
+# --- API KEY CONFIGURATION ---
+# Note: Currently using Local NLP Engine for 100% reliability
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY') 
+# -----------------------------
 
-
-# Gemini model configuration
-generation_config = {
-    "temperature": 0.7,
-    "top_p": 1,
-    "top_k": 32,
-    "max_output_tokens": 500,
-}
-
-safety_settings = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-]
-
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash-latest",
-
-    generation_config=generation_config,
-    safety_settings=safety_settings
-)
 
 @app.route('/', methods=['GET'])
 def index():

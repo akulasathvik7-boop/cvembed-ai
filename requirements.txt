@@ -14,3 +14,4 @@ torch
 gensim
 scipy
 google-generativeai
+python-dotenv
