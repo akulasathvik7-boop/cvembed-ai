@@ -1,4 +1,3 @@
-# Coding by Samitha Randika | https://www.linkedin.com/in/samitha-randika-edirisinghe-b3a68a2b6 #
 # Configuration for datasets and models
 DATASETS = [
     "bwbayu/job_cv_supervised",

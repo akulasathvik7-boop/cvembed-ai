@@ -1,4 +1,3 @@
-# Coding by Samitha Randika | https://www.linkedin.com/in/samitha-randika-edirisinghe-b3a68a2b6 #
 import numpy as np
 from gensim.models import KeyedVectors
 from utils.text_processing import tokenize_text

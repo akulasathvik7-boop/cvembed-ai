@@ -94,8 +94,5 @@ This project is licensed under the MIT License.
 
 ---
 
-### **Developed for Kitsw Hackathon 🏆**
-Providing tools to help developers match their skills with the future of work.
-questions or feedback, reach out at:  
-[randikanilupul123@gmail.com](mailto:randikanilupul123@gmail.com)
-#   k i t s w g l  
+### Kitsw Hackathon
+Project for skill–role matching and resume analysis.

@@ -1,4 +1,3 @@
-# Coding by Samitha Randika | https://www.linkedin.com/in/samitha-randika-edirisinghe-b3a68a2b6 #
 from gensim.models import Doc2Vec
 import numpy as np
 import logging
