@@ -21,14 +21,18 @@
             <div class="glass-card">
                 <h2>Target Job Specification</h2>
                 <p style="color: var(--text-muted); margin-bottom: 30px;">Choose a matching engine and provide the job requirements to calculate your compatibility score.</p>
+
+                {% if error %}
+                <div class="form-error-banner" role="alert">{{ error }}</div>
+                {% endif %}
                 
-                <form action="/process_jd" method="post" enctype="multipart/form-data">
+                <form action="/process_jd" method="post" enctype="multipart/form-data" id="jd-form">
                     <div style="max-width: 400px; margin: 0 auto 40px;">
                         <label for="model_type" style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: var(--primary-light);">Matching Algorithm</label>
                         <select id="model_type" name="model_type">
-                            <option value="sbert">SBERT Optimizer (Deep Learning)</option>
-                            <option value="glove">GloVe Semantic Vectoring</option>
-                            <option value="doc2vec">Doc2Vec Document Embedding</option>
+                            <option value="sbert" {% if active_model == 'sbert' %}selected{% endif %}>SBERT Optimizer (Deep Learning)</option>
+                            <option value="glove" {% if active_model == 'glove' %}selected{% endif %}>GloVe Semantic Vectoring</option>
+                            <option value="doc2vec" {% if active_model == 'doc2vec' %}selected{% endif %}>Doc2Vec Document Embedding</option>
                         </select>
                     </div>
 
@@ -48,7 +52,7 @@
                     </div>
                     
                     <div style="text-align: center;">
-                        <button type="submit" class="btn-primary">
+                        <button type="submit" class="btn-primary" id="jd-submit">
                             Run AI Intelligence Match <span>✨</span>
                         </button>
                     </div>
@@ -60,5 +64,25 @@
             <p>&copy; 2025 CVEmbed AI. Precision Resume Matching Engine.</p>
         </footer>
     </div>
+    <script>
+        (function () {
+            var form = document.getElementById('jd-form');
+            var btn = document.getElementById('jd-submit');
+            if (!form || !btn) return;
+            form.addEventListener('submit', function (e) {
+                var file = document.getElementById('jd_file');
+                var text = document.getElementById('jd_text');
+                var hasFile = file && file.files && file.files.length > 0;
+                var hasText = text && text.value.trim().length > 0;
+                if (!hasFile && !hasText) {
+                    e.preventDefault();
+                    alert('Please paste a job description or choose a JD file (PDF, DOCX, or TXT) before running the match.');
+                    return;
+                }
+                btn.disabled = true;
+                btn.innerHTML = 'Analyzing…';
+            });
+        })();
+    </script>
 </body>
-</html>
+</html>

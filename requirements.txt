@@ -15,3 +15,10 @@ gensim
 scipy
 google-generativeai
 python-dotenv
+fastapi
+uvicorn
+pymongo
+motor
+pydantic
+python-multipart
+gunicorn

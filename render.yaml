@@ -1,0 +1,16 @@
+# https://render.com/docs/yaml-spec
+# After push: Render creates a Web Service and shows URL like https://cv-embed-xxxx.onrender.com
+services:
+  - type: web
+    name: cv-embed
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHONUNBUFFERED
+        value: "1"

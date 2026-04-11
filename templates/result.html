@@ -129,46 +129,48 @@
 
     <!-- Chart Implementation -->
     <script>
-        const ctx = document.getElementById('radarChart').getContext('2d');
-        const alignmentData = {{ resume_feedback.alignment | tojson }};
-        
-        new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: ['Technical', 'Soft Skills', 'Tools', 'Experience'],
-                datasets: [{
-                    label: 'Match Level',
-                    data: [
-                        alignmentData.technical, 
-                        alignmentData.soft_skills, 
-                        alignmentData.tools, 
-                        alignmentData.experience
-                    ],
-                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                    borderColor: 'rgba(99, 102, 241, 1)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-                    pointBorderColor: '#fff',
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        pointLabels: { color: '#94a3b8', font: { size: 12, weight: '600' } },
-                        ticks: { display: false, stepSize: 20 },
-                        suggestedMin: 0,
-                        suggestedMax: 100
-                    }
+        (function () {
+            var canvas = document.getElementById('radarChart');
+            if (!canvas || typeof Chart === 'undefined') return;
+            var ctx = canvas.getContext('2d');
+            var alignmentData = {{ resume_feedback.alignment | tojson }};
+            var t = alignmentData && alignmentData.technical != null ? alignmentData.technical : 50;
+            var s = alignmentData && alignmentData.soft_skills != null ? alignmentData.soft_skills : 50;
+            var o = alignmentData && alignmentData.tools != null ? alignmentData.tools : 50;
+            var x = alignmentData && alignmentData.experience != null ? alignmentData.experience : 50;
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Technical', 'Soft Skills', 'Tools', 'Experience'],
+                    datasets: [{
+                        label: 'Match Level',
+                        data: [t, s, o, x],
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                        pointBorderColor: '#fff',
+                    }]
                 },
-                plugins: {
-                    legend: { display: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: { color: '#94a3b8', font: { size: 12, weight: '600' } },
+                            ticks: { display: false, stepSize: 20 },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
                 }
-            }
-        });
+            });
+        })();
     </script>
 </body>
 </html>

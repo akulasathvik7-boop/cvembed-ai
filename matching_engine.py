@@ -143,3 +143,131 @@ def get_top_job_matches(resume_text, model_type=None, top_n=5):
     except Exception as e:
         logger.error(f"Top job matches error: {e}")
         return []
+
+
+def skill_embedding_similarity(
+    candidate_skills: list,
+    required_skills: list,
+    model_type=None,
+) -> float:
+    """
+    Skill-based embedding similarity: embeds concatenated skill phrases and returns 0–100
+    cosine-style match using the active sentence/vector model (GloVe / SBERT / Doc2Vec).
+    """
+    a = ", ".join(candidate_skills or [])
+    b = ", ".join(required_skills or [])
+    if not a.strip() or not b.strip():
+        return 0.0
+    raw = float(calculate_similarity(a, b, model_type=model_type))
+    # Inference layers return 0–100; guard if a raw cosine 0–1 ever appears
+    return raw if raw > 1.0 else (raw * 100.0)
+
+
+def rank_jobs_by_skill_embedding(candidate: dict, jobs: list, model_type=None, top_n=None):
+    """
+    Rank job dicts by skill embedding similarity only (search / pre-filter use case).
+    Returns list of (job_dict, skill_similarity_pct) sorted best-first.
+    """
+    c_skills = candidate.get("skills") or []
+    scored = []
+    for job in jobs:
+        pct = skill_embedding_similarity(
+            c_skills, job.get("required_skills") or [], model_type=model_type
+        )
+        scored.append((job, round(pct, 2)))
+    scored.sort(key=lambda x: x[1], reverse=True)
+    if top_n is not None:
+        scored = scored[:top_n]
+    return scored
+
+
+def compute_multi_criteria_components(candidate: dict, job: dict, model_type=None):
+    """
+    Multi-criteria match scoring (all sub-scores normalized to 0–1 internally).
+
+    Final (display %) = 100 * (
+        0.4 * skill_embedding + 0.2 * experience + 0.2 * location + 0.2 * preferences
+    )
+    """
+    c_skills = candidate.get("skills") or []
+    j_skills = job.get("required_skills") or []
+
+    raw_skill = float(
+        calculate_similarity(", ".join(c_skills), ", ".join(j_skills), model_type=model_type)
+    )
+    skill_score = raw_skill / 100.0 if raw_skill > 1.0 else raw_skill
+
+    cand_exp = float(candidate.get("experience_years", 0) or 0)
+    min_exp = float(job.get("min_experience", 0.1) or 0.1)
+    exp_score = min(1.0, cand_exp / max(0.1, min_exp))
+
+    cl = str(candidate.get("location") or "").lower()
+    jl = str(job.get("location") or "").lower()
+    location_score = 1.0 if cl and jl and (cl in jl or jl in cl) else 0.0
+
+    if job.get("preferences"):
+        pref_match_count = 0
+        for pref in job["preferences"]:
+            if any(pref.lower() in skill.lower() for skill in c_skills):
+                pref_match_count += 1
+        pref_score = pref_match_count / max(1, len(job["preferences"]))
+    else:
+        pref_score = 1.0
+
+    final_01 = (
+        0.4 * skill_score
+        + 0.2 * exp_score
+        + 0.2 * location_score
+        + 0.2 * pref_score
+    )
+    final_pct = round(final_01 * 100, 2)
+
+    return {
+        "skill_embedding_0_1": round(skill_score, 4),
+        "skill_embedding_similarity_pct": round(skill_score * 100, 2),
+        "experience_0_1": round(exp_score, 4),
+        "experience_alignment_pct": round(exp_score * 100, 2),
+        "location_0_1": round(location_score, 4),
+        "location_match_pct": round(location_score * 100, 2),
+        "preferences_0_1": round(pref_score, 4),
+        "preferences_alignment_pct": round(pref_score * 100, 2),
+        "weights": {"skill": 0.4, "experience": 0.2, "location": 0.2, "preferences": 0.2},
+        "final_composite_pct": final_pct,
+    }
+
+
+def multi_criteria_breakdown(candidate: dict, job: dict, model_type=None) -> dict:
+    """Human-readable breakdown for API responses and UI."""
+    return compute_multi_criteria_components(candidate, job, model_type=model_type)
+
+
+def calculate_advanced_score(candidate, job, model_type=None):
+    """
+    Multi-criteria composite score (single number 0–100).
+
+    Skill match uses embedding similarity over skill lists; other criteria are
+    experience, location, and preference alignment.
+    """
+    return compute_multi_criteria_components(candidate, job, model_type=model_type)[
+        "final_composite_pct"
+    ]
+
+if __name__ == '__main__':
+    # Unit Test for Sample Match Recommendation Demo
+    candidate = {
+        "skills": ["Python", "ML", "SQL"],
+        "experience_years": 2,
+        "location": "Hyderabad",
+        "preferences": ["Remote"]
+    }
+    
+    job = {
+        "title": "Data Scientist",
+        "required_skills": ["Python", "ML", "SQL", "Deep Learning"],
+        "min_experience": 2,
+        "location": "Hyderabad",
+        "preferences": ["Analytical Thinking"]
+    }
+    
+    score = calculate_advanced_score(candidate, job)
+    logger.info(f"Test Score for {job['title']}: {score}%")
