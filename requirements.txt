@@ -22,3 +22,5 @@ motor
 pydantic
 python-multipart
 gunicorn
+bcrypt
+PyJWT

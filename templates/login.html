@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Login — CVEmbed AI{% endblock %}
+{% block description %}Sign in to CVEmbed AI to access your resume analysis history and personalised insights.{% endblock %}
+
+{% block content %}
+<div class="auth-layout">
+
+  <!-- ===== Branding Panel ===== -->
+  <div class="auth-brand-panel">
+    <div class="brand-glow"></div>
+
+    <div class="auth-brand-logo" style="font-family:'Outfit',sans-serif;font-size:3rem;font-weight:900;">
+      <span class="logo-cv">CV</span><span class="logo-embed" style="color:var(--text);">Embed</span>
+      <span class="logo-badge" style="font-size:0.55rem;">AI</span>
+    </div>
+
+    <p class="auth-brand-tagline">Your career intelligence companion. Upload once, analyse forever.</p>
+
+    <ul class="auth-features">
+      <li>
+        <span class="check">✓</span>
+        AI-powered resume scoring across 3 models
+      </li>
+      <li>
+        <span class="check">✓</span>
+        Role eligibility prediction (20+ job roles)
+      </li>
+      <li>
+        <span class="check">✓</span>
+        Live LinkedIn &amp; Indeed job links
+      </li>
+      <li>
+        <span class="check">✓</span>
+        Full analysis history &amp; tracking
+      </li>
+    </ul>
+  </div>
+
+  <!-- ===== Form Panel ===== -->
+  <div class="auth-form-panel">
+    <div class="auth-form-box">
+
+      <h1>Welcome back 👋</h1>
+      <p class="auth-subtitle">Sign in to access your analysis history.</p>
+
+      {% if success %}
+        <div class="form-success-banner">✅ {{ success }}</div>
+      {% endif %}
+      {% if error %}
+        <div class="form-error-banner">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form action="{{ url_for('auth.login') }}" method="post" id="loginForm" novalidate>
+
+        <div class="form-group">
+          <label class="form-label" for="login-email">Email Address</label>
+          <div class="form-input-icon">
+            <span class="input-icon">✉️</span>
+            <input
+              class="form-input"
+              type="email"
+              id="login-email"
+              name="email"
+              value="{{ request.form.get('email', '') }}"
+              placeholder="you@example.com"
+              required
+              autocomplete="email"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <div class="pw-wrapper">
+            <input
+              class="form-input"
+              type="password"
+              id="login-password"
+              name="password"
+              placeholder="••••••••"
+              required
+              autocomplete="current-password"
+            >
+            <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="loginBtn">
+          Sign In
+        </button>
+
+      </form>
+
+      <div class="auth-divider">or</div>
+
+      <a href="{{ url_for('index') }}" class="btn btn-secondary btn-full" id="guestBtn" style="font-weight:600;font-family:'Inter',sans-serif;">
+        Continue as Guest (no history saved)
+      </a>
+
+      <p class="auth-footer-text">
+        Don't have an account?
+        <a href="{{ url_for('auth.register') }}" id="registerLink">Create one — it's free</a>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Password visibility toggle
+  const pwField  = document.getElementById('login-password');
+  const pwToggle = document.getElementById('pwToggle');
+  if (pwField && pwToggle) {
+    pwToggle.addEventListener('click', () => {
+      const show = pwField.type === 'password';
+      pwField.type = show ? 'text' : 'password';
+      pwToggle.textContent = show ? '🙈' : '👁️';
+    });
+  }
+
+  // Disable submit on click to prevent double-submit
+  const loginForm = document.getElementById('loginForm');
+  const loginBtn  = document.getElementById('loginBtn');
+  if (loginForm && loginBtn) {
+    loginForm.addEventListener('submit', (e) => {
+      if (!loginForm.checkValidity()) {
+        return;
+      }
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in…';
+      if (typeof window.showGlobalLoader === 'function') {
+        window.showGlobalLoader('Signing you in...');
+      }
+    });
+  }
+</script>
+{% endblock %}

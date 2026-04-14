@@ -1,0 +1,10 @@
+from app import app
+c = app.test_client()
+print('login_get', c.get('/login').status_code)
+print('register_get', c.get('/register').status_code)
+r = c.post('/register', data={'username':'ab','email':'x','password':'123','confirm_password':'123'})
+print('register_invalid', r.status_code)
+r = c.post('/register', data={'username':'tester123','email':'tester123@example.com','password':'Password1!','confirm_password':'Password1!'}, follow_redirects=False)
+print('register_create', r.status_code, r.headers.get('Location'))
+r = c.post('/login', data={'email':'tester123@example.com','password':'Password1!'}, follow_redirects=False)
+print('login_post', r.status_code, bool(r.headers.get('Set-Cookie')))

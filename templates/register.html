@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Create Account — CVEmbed AI{% endblock %}
+{% block description %}Create your free CVEmbed AI account and start unlocking AI-powered resume insights.{% endblock %}
+
+{% block content %}
+<div class="auth-layout">
+
+  <!-- ===== Branding Panel ===== -->
+  <div class="auth-brand-panel">
+    <div class="brand-glow"></div>
+
+    <div style="font-family:'Outfit',sans-serif;font-size:3rem;font-weight:900;margin-bottom:20px;">
+      <span class="logo-cv">CV</span><span class="logo-embed" style="color:var(--text);">Embed</span>
+      <span class="logo-badge" style="font-size:0.55rem;">AI</span>
+    </div>
+
+    <p class="auth-brand-tagline">Join the smart way to match your skills with the right opportunities.</p>
+
+    <ul class="auth-features">
+      <li><span class="check">✓</span> Completely free — no credit card needed</li>
+      <li><span class="check">✓</span> Save &amp; revisit your full analysis history</li>
+      <li><span class="check">✓</span> Track your improvement over time</li>
+      <li><span class="check">✓</span> Bcrypt-encrypted password — always secure</li>
+    </ul>
+  </div>
+
+  <!-- ===== Form Panel ===== -->
+  <div class="auth-form-panel">
+    <div class="auth-form-box">
+
+      <h1>Create your account</h1>
+      <p class="auth-subtitle">Get started in seconds. No credit card required.</p>
+
+      {% if error %}
+        <div class="form-error-banner">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form action="{{ url_for('auth.register') }}" method="post" id="registerForm" novalidate>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-username">Username</label>
+          <div class="form-input-icon">
+            <span class="input-icon">👤</span>
+            <input
+              class="form-input"
+              type="text"
+              id="reg-username"
+              name="username"
+              value="{{ request.form.get('username', '') }}"
+              placeholder="e.g. john_doe"
+              required
+              minlength="3"
+              maxlength="40"
+              autocomplete="username"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Email Address</label>
+          <div class="form-input-icon">
+            <span class="input-icon">✉️</span>
+            <input
+              class="form-input"
+              type="email"
+              id="reg-email"
+              name="email"
+              value="{{ request.form.get('email', '') }}"
+              placeholder="you@example.com"
+              required
+              autocomplete="email"
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password <span style="color:var(--text-subtle);font-weight:400;">(min 8 chars)</span></label>
+          <div class="pw-wrapper">
+            <input
+              class="form-input"
+              type="password"
+              id="reg-password"
+              name="password"
+              placeholder="••••••••"
+              required
+              minlength="8"
+              autocomplete="new-password"
+              oninput="updateStrength(this.value)"
+            >
+            <button type="button" class="pw-toggle" id="pwToggle1" aria-label="Show password">👁️</button>
+          </div>
+          <!-- Strength indicator -->
+          <div class="pw-strength-bar">
+            <div class="pw-strength-fill" id="strengthFill"></div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--text-subtle);margin-top:5px;" id="strengthLabel"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-confirm">Confirm Password</label>
+          <div class="pw-wrapper">
+            <input
+              class="form-input"
+              type="password"
+              id="reg-confirm"
+              name="confirm_password"
+              placeholder="••••••••"
+              required
+              autocomplete="new-password"
+            >
+            <button type="button" class="pw-toggle" id="pwToggle2" aria-label="Show confirm password">👁️</button>
+          </div>
+          <div style="font-size:0.78rem;margin-top:5px;" id="matchLabel"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="regBtn">
+          Create Account
+        </button>
+
+      </form>
+
+      <p class="auth-footer-text">
+        Already have an account?
+        <a href="{{ url_for('auth.login') }}" id="loginLink">Sign in</a>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Password toggle helpers
+  function makePwToggle(fieldId, btnId) {
+    const f = document.getElementById(fieldId);
+    const b = document.getElementById(btnId);
+    if (f && b) {
+      b.addEventListener('click', () => {
+        const show = f.type === 'password';
+        f.type = show ? 'text' : 'password';
+        b.textContent = show ? '🙈' : '👁️';
+      });
+    }
+  }
+  makePwToggle('reg-password', 'pwToggle1');
+  makePwToggle('reg-confirm', 'pwToggle2');
+
+  // Password strength
+  function updateStrength(val) {
+    const fill  = document.getElementById('strengthFill');
+    const label = document.getElementById('strengthLabel');
+    if (!fill || !label) return;
+    let score = 0;
+    if (val.length >= 8)  score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const map = [
+      { width: '0%',   bg: 'transparent',                 text: '' },
+      { width: '25%',  bg: 'var(--danger)',               text: 'Weak' },
+      { width: '50%',  bg: 'var(--warning)',              text: 'Fair' },
+      { width: '75%',  bg: 'var(--accent)',               text: 'Good' },
+      { width: '100%', bg: 'var(--success)',              text: 'Strong 💪' },
+    ];
+    fill.style.width      = map[score].width;
+    fill.style.background = map[score].bg;
+    label.textContent     = map[score].text;
+    label.style.color     = map[score].bg;
+  }
+
+  // Password match live check
+  const regPw   = document.getElementById('reg-password');
+  const regConf = document.getElementById('reg-confirm');
+  const matchLabel = document.getElementById('matchLabel');
+
+  function checkMatch() {
+    if (!regConf.value) { matchLabel.textContent = ''; return; }
+    const match = regPw.value === regConf.value;
+    matchLabel.textContent = match ? '✓ Passwords match' : '✗ Passwords do not match';
+    matchLabel.style.color = match ? 'var(--success)' : 'var(--danger)';
+  }
+  if (regPw && regConf) {
+    regPw.addEventListener('input', checkMatch);
+    regConf.addEventListener('input', checkMatch);
+  }
+
+  // Prevent double-submit
+  const regForm = document.getElementById('registerForm');
+  const regBtn  = document.getElementById('regBtn');
+  if (regForm && regBtn) {
+    regForm.addEventListener('submit', () => {
+      if (!regForm.checkValidity()) {
+        return;
+      }
+      regBtn.disabled = true;
+      regBtn.textContent = 'Creating account…';
+      if (typeof window.showGlobalLoader === 'function') {
+        window.showGlobalLoader('Creating your account...');
+      }
+    });
+  }
+</script>
+{% endblock %}

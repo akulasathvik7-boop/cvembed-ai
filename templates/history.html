@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}My History — CVEmbed AI{% endblock %}
+{% block description %}View your past resume analysis sessions and track your career progress over time.{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- ===== Page Header ===== -->
+  <div class="text-center" style="margin-bottom: 40px;">
+    <div class="hero-eyebrow">📊 Logged in as {{ username }}</div>
+    <h1 style="font-size: clamp(1.8rem, 4vw, 2.8rem); margin-bottom: 12px;">
+      Your Analysis <span class="gradient-text" style="background:linear-gradient(135deg,var(--primary-light),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">History</span>
+    </h1>
+    <p style="color: var(--text-muted); font-size: 1rem; max-width: 500px; margin: 0 auto;">
+      Every analysis you run while logged in is saved here so you can track your progress.
+    </p>
+  </div>
+
+  {% if history %}
+    <!-- ===== Stats Summary ===== -->
+    <div class="analysis-grid" style="margin-bottom: 28px;">
+      <div class="analysis-card card-strengths">
+        <div class="analysis-card-header">
+          <div class="analysis-card-icon">📈</div>
+          <h4>Total Analyses</h4>
+        </div>
+        <div style="font-size: 2.5rem; font-family: 'Outfit', sans-serif; font-weight: 900; color: var(--success);">
+          {{ history | length }}
+        </div>
+      </div>
+      <div class="analysis-card card-guidance">
+        <div class="analysis-card-header">
+          <div class="analysis-card-icon">🎯</div>
+          <h4>Best Score</h4>
+        </div>
+        <div style="font-size: 2.5rem; font-family: 'Outfit', sans-serif; font-weight: 900; background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+          {{ history | map(attribute='similarity_score') | list | max | int }}%
+        </div>
+      </div>
+      <div class="analysis-card card-gaps">
+        <div class="analysis-card-header">
+          <div class="analysis-card-icon">💼</div>
+          <h4>Top Role</h4>
+        </div>
+        <div style="font-size: 1.1rem; font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text);">
+          {{ history[0].top_role or 'Unknown' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== History Table ===== -->
+    <div class="glass-card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 24px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0;">Recent Analyses</h2>
+        <a href="{{ url_for('index') }}" class="btn btn-primary" id="newAnalysisBtn" style="padding: 10px 20px; font-size: 0.88rem;">
+          + New Analysis
+        </a>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="history-table" id="historyTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Match Score</th>
+              <th>Top Role</th>
+              <th>Algorithm</th>
+              <th>Date &amp; Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in history %}
+            <tr>
+              <td style="color: var(--text-subtle); font-size: 0.82rem;">{{ loop.index }}</td>
+              <td>
+                {% set score = item.similarity_score | int %}
+                <span class="score-pill {% if score >= 70 %}high{% elif score >= 40 %}medium{% else %}low{% endif %}">
+                  {{ score }}%
+                </span>
+              </td>
+              <td style="font-weight: 600; color: var(--text);">{{ item.top_role or '—' }}</td>
+              <td><span class="model-tag">{{ (item.model_type or 'unknown') | upper }}</span></td>
+              <td style="color: var(--text-muted); font-size: 0.85rem;">
+                {{ item.created_at | replace('T', ' ') if item.created_at else '—' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  {% else %}
+    <!-- ===== Empty State ===== -->
+    <div class="glass-card">
+      <div class="empty-state">
+        <div class="empty-icon">🗂️</div>
+        <h3>No analyses yet</h3>
+        <p style="margin-bottom: 28px;">
+          Your history will appear here each time you run a resume analysis while logged in.
+        </p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary" id="startAnalysisFromHistoryBtn">
+          Start Your First Analysis →
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

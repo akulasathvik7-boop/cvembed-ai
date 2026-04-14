@@ -1,176 +1,387 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Embed | Analysis Results</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Load Chart.js via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="logo"><span>CV</span>Embed</div>
-            <div class="steps">
-                <div class="step completed">1. Add Resume</div>
-                <div class="step completed">2. Specify Job</div>
-                <div class="step active">3. Analyze</div>
+{% extends "base.html" %}
+{% block title %}Analysis Results — CVEmbed AI{% endblock %}
+{% block description %}Your AI-powered resume analysis results including match score, role eligibility, and live job suggestions.{% endblock %}
+
+{% block head_extra %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div id="resultSkeletonWrap" class="glass-card saas-card" style="margin-bottom:22px;">
+    <div class="skeleton skeleton-line" style="width:40%;"></div>
+    <div class="skeleton skeleton-line" style="width:72%;"></div>
+    <div class="skeleton skeleton-block"></div>
+  </div>
+
+  <!-- ===== Steps Bar ===== -->
+  <div class="steps-bar">
+    <div class="step-item completed"><div class="step-circle">✓</div><span class="step-label">Add Resume</span></div>
+    <div class="step-connector completed"></div>
+    <div class="step-item completed"><div class="step-circle">✓</div><span class="step-label">Specify Job</span></div>
+    <div class="step-connector completed"></div>
+    <div class="step-item active"><div class="step-circle">3</div><span class="step-label">Results</span></div>
+  </div>
+
+  <!-- ===== Score + Radar Dashboard ===== -->
+  <div class="glass-card saas-card stagger-1" style="margin-bottom: 22px;" id="resultsContent">
+    <div class="dashboard-grid">
+
+      <!-- Score Ring -->
+      <div class="chart-panel" style="gap: 16px;">
+        <h3>Match Score</h3>
+        <div class="score-ring" id="scoreRingWrapper">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="#A78BFA"/>
+                <stop offset="100%" stop-color="#06B6D4"/>
+              </linearGradient>
+            </defs>
+            <circle class="track" cx="50" cy="50" r="44"/>
+            <circle class="fill"  cx="50" cy="50" r="44" id="scoreArc"/>
+          </svg>
+          <div class="score-ring-inner">
+            <span class="score-number" id="scoreDisplay">0</span>
+            <span class="score-unit">Match Score</span>
+          </div>
+        </div>
+
+        <!-- Badge -->
+        {% if similarity_score >= 70 %}
+          <span class="score-badge excellent">✅ Excellent Alignment</span>
+        {% elif similarity_score >= 50 %}
+          <span class="score-badge good">👍 Good Alignment</span>
+        {% elif similarity_score >= 30 %}
+          <span class="score-badge moderate">⚠️ Moderate Alignment</span>
+        {% else %}
+          <span class="score-badge poor">❌ Low Alignment</span>
+        {% endif %}
+
+        <!-- Algorithm Tag -->
+        <div style="margin-top: 10px;">
+          <span class="model-tag">{{ model_type | upper }} Engine</span>
+        </div>
+      </div>
+
+      <!-- Skill Radar -->
+      <div style="background: rgba(255,255,255,0.015); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; display: flex; flex-direction: column;">
+        <h3 style="font-size: 0.9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 20px;">Skill Alignment Radar</h3>
+        <div style="flex: 1; min-height: 240px;">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+
+    </div><!-- /.dashboard-grid -->
+  </div><!-- /.glass-card -->
+
+  <!-- ===== Role Eligibility ===== -->
+  {% if eligible_roles %}
+  <div class="glass-card saas-card stagger-2" style="margin-bottom: 22px;">
+    <div class="roles-section" style="margin-bottom: 0;">
+      <div class="section-title">
+        <span class="badge-dot"></span>
+        💼 Role Eligibility — Top Matches for Your Profile
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 22px;">
+        Based on your resume's skills and keywords, here are the top roles you are best suited for,
+        with direct links to live job postings.
+      </p>
+      <div class="roles-grid">
+        {% for role in eligible_roles %}
+        <div class="role-card">
+          <div class="role-name">{{ role.role }}</div>
+          <div class="role-match-bar">
+            <div class="role-match-fill" data-pct="{{ role.match_pct }}"></div>
+          </div>
+          <div class="role-match-pct">{{ role.match_pct }}% match</div>
+
+          {% if role.matched_skills %}
+          <div class="role-evidence-group">
+            <div class="role-evidence-title">Matched</div>
+            <div class="role-evidence-chips">
+              {% for skill in role.matched_skills[:4] %}
+                <span class="role-e-chip matched">+ {{ skill }}</span>
+              {% endfor %}
             </div>
-        </header>
+          </div>
+          {% endif %}
 
-        <main>
-            <div class="glass-card">
-                <div class="dashboard-grid">
-                    <!-- Left: Main Results -->
-                    <div class="score-panel">
-                        <h2>Analysis Complete</h2>
-                        <div class="radial-score">
-                            <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
-                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5" />
-                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-dasharray="{{ similarity_score }}, 100" />
-                            </svg>
-                            <div class="score-inner">
-                                <span class="score-value">{{ similarity_score }}%</span>
-                                <span class="score-label">MATCH SCORE</span>
-                            </div>
-                        </div>
-                        <div class="model-info" style="margin-top: 20px;">
-                            ALGORITHM: {{ session.get('model_type', 'SBERT') | upper }}
-                        </div>
-                        
-                        <div style="margin-top: 30px; text-align: center;">
-                            {% if similarity_score < 40 %}
-                                <p style="color: var(--danger); font-weight: 600;">Critical alignment gaps detected.</p>
-                            {% elif similarity_score < 70 %}
-                                <p style="color: var(--warning); font-weight: 600;">Moderate alignment. Optimization recommended.</p>
-                            {% else %}
-                                <p style="color: var(--success); font-weight: 600;">Optimal profile alignment detected.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Right: Skill Radar -->
-                    <div class="chart-container">
-                        <canvas id="radarChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Analysis Details -->
-                <div class="analysis-grid">
-                    <div class="analysis-card card-strengths">
-                        <h4><span>✅</span> Key Strengths</h4>
-                        <ul class="analysis-list">
-                            {% for strength in resume_feedback.strengths %}
-                            <li>{{ strength }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    
-                    <div class="analysis-card card-gaps">
-                        <h4><span>⚠️</span> Skill Gaps</h4>
-                        <ul class="analysis-list">
-                            {% for drawback in resume_feedback.drawbacks %}
-                            <li>{{ drawback }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    
-                    <div class="analysis-card card-guidance">
-                        <h4><span>💡</span> Optimization Path</h4>
-                        <ul class="analysis-list">
-                            {% for guide in resume_feedback.guidance %}
-                            <li>{{ guide }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Keywords -->
-                {% if resume_feedback.missing_keywords %}
-                <div style="margin-top: 40px;">
-                    <h4 style="margin-bottom: 20px;">Top Missing Keywords</h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                        {% for keyword in resume_feedback.missing_keywords %}
-                        <span style="background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 50px; border: 1px solid var(--glass-border); font-size: 0.85rem; font-weight: 600;">{{ keyword|upper }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
+          {% if role.partial_matches %}
+          <div class="role-evidence-group">
+            <div class="role-evidence-title">Partial</div>
+            <div class="role-evidence-chips">
+              {% for skill in role.partial_matches[:3] %}
+                <span class="role-e-chip partial">~ {{ skill }}</span>
+              {% endfor %}
             </div>
+          </div>
+          {% endif %}
 
-            <!-- Job Listings -->
-            <div class="job-matches">
-                <h3 style="margin-bottom: 25px;">Recommended Opportunities</h3>
-                {% if job_listings %}
-                    {% for job in job_listings %}
-                    <div class="job-card">
-                        <div class="job-info">
-                            <h5>{{ job.title }}</h5>
-                            <div class="job-meta">{{ job.company }} • {{ job.location }}</div>
-                        </div>
-                        <a href="{{ job.apply_url }}" target="_blank" class="btn-secondary">View Role</a>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p style="color: var(--text-muted);">No live opportunities found for this profile.</p>
-                {% endif %}
+          {% if role.missing_skills %}
+          <div class="role-evidence-group">
+            <div class="role-evidence-title">Missing</div>
+            <div class="role-evidence-chips">
+              {% for skill in role.missing_skills[:3] %}
+                <span class="role-e-chip missing">- {{ skill }}</span>
+              {% endfor %}
             </div>
+          </div>
+          {% endif %}
 
-            <div style="text-align: center; margin-top: 50px;">
-                <a href="/" class="btn-primary" style="text-decoration: none;">New Analysis</a>
-            </div>
-        </main>
-
-        <footer>
-            <p>&copy; 2025 CVEmbed AI. Precision Resume Matching Engine.</p>
-        </footer>
+          <div class="role-links">
+            <a href="{{ role.linkedin_url }}" target="_blank" rel="noopener noreferrer"
+               class="role-link linkedin" id="linkedin-role-{{ loop.index }}">
+              🔗 LinkedIn Jobs
+            </a>
+            <a href="{{ role.indeed_url }}" target="_blank" rel="noopener noreferrer"
+               class="role-link indeed" id="indeed-role-{{ loop.index }}">
+              💼 Indeed
+            </a>
+            <a href="{{ role.naukri_url }}" target="_blank" rel="noopener noreferrer"
+               class="role-link naukri" id="naukri-role-{{ loop.index }}">
+              🇮🇳 Naukri
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
+  </div>
+  {% endif %}
 
-    <!-- Chart Implementation -->
-    <script>
-        (function () {
-            var canvas = document.getElementById('radarChart');
-            if (!canvas || typeof Chart === 'undefined') return;
-            var ctx = canvas.getContext('2d');
-            var alignmentData = {{ resume_feedback.alignment | tojson }};
-            var t = alignmentData && alignmentData.technical != null ? alignmentData.technical : 50;
-            var s = alignmentData && alignmentData.soft_skills != null ? alignmentData.soft_skills : 50;
-            var o = alignmentData && alignmentData.tools != null ? alignmentData.tools : 50;
-            var x = alignmentData && alignmentData.experience != null ? alignmentData.experience : 50;
-            new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['Technical', 'Soft Skills', 'Tools', 'Experience'],
-                    datasets: [{
-                        label: 'Match Level',
-                        data: [t, s, o, x],
-                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                        borderColor: 'rgba(99, 102, 241, 1)',
-                        borderWidth: 2,
-                        pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-                        pointBorderColor: '#fff',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                            pointLabels: { color: '#94a3b8', font: { size: 12, weight: '600' } },
-                            ticks: { display: false, stepSize: 20 },
-                            suggestedMin: 0,
-                            suggestedMax: 100
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        })();
-    </script>
-</body>
-</html>
+  <!-- ===== Analysis Cards ===== -->
+  <div class="glass-card saas-card" style="margin-bottom: 22px;">
+    <div class="section-title" style="margin-bottom: 20px;">
+      <span class="badge-dot"></span>
+      📋 Detailed Resume Analysis
+    </div>
+    <div class="analysis-grid">
+
+      <!-- Strengths -->
+      <div class="analysis-card card-strengths">
+        <div class="analysis-card-header">
+          <div class="analysis-card-icon">✅</div>
+          <h4>Key Strengths</h4>
+        </div>
+        <ul class="analysis-list">
+          {% for strength in resume_feedback.strengths %}
+            <li>{{ strength }}</li>
+          {% else %}
+            <li>Analysis complete.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Drawbacks -->
+      <div class="analysis-card card-gaps">
+        <div class="analysis-card-header">
+          <div class="analysis-card-icon">⚠️</div>
+          <h4>Skill Gaps &amp; Drawbacks</h4>
+        </div>
+        <ul class="analysis-list">
+          {% for drawback in resume_feedback.drawbacks %}
+            <li>
+              {% if '[Critical]' in drawback %}
+                <span class="severity-critical">[Critical]</span>{{ drawback | replace('[Critical]','') }}
+              {% elif '[Moderate]' in drawback %}
+                <span class="severity-moderate">[Moderate]</span>{{ drawback | replace('[Moderate]','') }}
+              {% elif '[Minor]' in drawback %}
+                <span class="severity-minor">[Minor]</span>{{ drawback | replace('[Minor]','') }}
+              {% else %}
+                {{ drawback }}
+              {% endif %}
+            </li>
+          {% else %}
+            <li>No significant gaps identified.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Guidance -->
+      <div class="analysis-card card-guidance">
+        <div class="analysis-card-header">
+          <div class="analysis-card-icon">💡</div>
+          <h4>Optimization Path</h4>
+        </div>
+        <ul class="analysis-list">
+          {% for guide in resume_feedback.guidance %}
+            <li>{{ guide }}</li>
+          {% else %}
+            <li>Add direct keywords from the job description.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </div>
+  </div><!-- /.glass-card -->
+
+  <!-- ===== Missing Keywords ===== -->
+  {% if resume_feedback.missing_keywords %}
+  <div class="glass-card saas-card" style="margin-bottom: 22px;">
+    <div class="section-title" style="margin-bottom: 16px;">
+      <span class="badge-dot"></span>
+      🏷️ Missing Keywords — Add These to Your Resume
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px;">
+      These keywords appear in the job description but are absent from your resume. Adding them can significantly boost your score.
+    </p>
+    <div class="keyword-chips">
+      {% for keyword in resume_feedback.missing_keywords %}
+        <span class="keyword-chip" title="Missing from your resume">🔴 {{ keyword | upper }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== Job Listings ===== -->
+  {% if job_listings %}
+  <div class="glass-card saas-card" style="margin-bottom: 22px;">
+    <div class="section-title" style="margin-bottom: 6px;">
+      <span class="badge-dot"></span>
+      🚀 Live Job Opportunities
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 22px;">
+      Based on your top matched role, here are live job search links across major platforms.
+    </p>
+    <div class="jobs-section" style="margin-bottom: 0;">
+      {% for job in job_listings %}
+      <div class="job-card">
+        <div class="job-platform-badge {{ job.platform }}">{{ job.badge }}</div>
+        <div class="job-info">
+          <h5>{{ job.title }}</h5>
+          <div class="job-meta">{{ job.company }} &bull; {{ job.location }}</div>
+        </div>
+        <a href="{{ job.apply_url }}" target="_blank" rel="noopener noreferrer"
+           class="job-apply-btn" id="apply-{{ job.platform }}">
+          View Jobs →
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== CTA Buttons ===== -->
+  <div class="text-center" style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;">
+    <button type="button" class="btn btn-secondary" id="exportPdfBtn">
+      Export PDF
+    </button>
+    <a href="{{ url_for('index') }}" class="btn btn-primary" id="newAnalysisBtn">
+      + New Analysis
+    </a>
+    {% if current_user %}
+      <a href="{{ url_for('history') }}" class="btn btn-secondary" id="viewHistoryBtn">
+        📊 View My History
+      </a>
+    {% else %}
+      <a href="{{ url_for('auth.register') }}" class="btn btn-secondary" id="saveHistoryBtn">
+        🔒 Sign Up to Save History
+      </a>
+    {% endif %}
+  </div>
+
+</div><!-- /.page-container -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const skeleton = document.getElementById('resultSkeletonWrap');
+  if (skeleton) {
+    setTimeout(() => {
+      skeleton.classList.add('hidden');
+    }, 350);
+  }
+
+  /* ---- Score Ring Animation ---- */
+  const TARGET_SCORE  = {{ similarity_score }};
+  const CIRCUMFERENCE = 2 * Math.PI * 44;   // r = 44
+
+  const arc = document.getElementById('scoreArc');
+  if (arc) {
+    arc.style.strokeDasharray  = CIRCUMFERENCE;
+    arc.style.strokeDashoffset = CIRCUMFERENCE;
+    // tick counter
+    const display = document.getElementById('scoreDisplay');
+    let current = 0;
+    const step  = Math.ceil(TARGET_SCORE / 60);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, TARGET_SCORE);
+      if (display) display.textContent = current;
+      // offset = circumference * (1 - pct/100)
+      arc.style.strokeDashoffset = CIRCUMFERENCE * (1 - current / 100);
+      if (current >= TARGET_SCORE) clearInterval(timer);
+    }, 28);
+  }
+
+  /* ---- Role Bar Animations ---- */
+  const fills = document.querySelectorAll('.role-match-fill');
+  setTimeout(() => {
+    fills.forEach(el => {
+      el.style.width = (el.dataset.pct || '0') + '%';
+    });
+  }, 400);
+
+  /* ---- Skill Radar Chart ---- */
+  const canvas = document.getElementById('radarChart');
+  if (canvas && typeof Chart !== 'undefined') {
+    const alignment = {{ resume_feedback.alignment | tojson }};
+    const t = alignment.technical   ?? 50;
+    const s = alignment.soft_skills ?? 50;
+    const o = alignment.tools       ?? 50;
+    const x = alignment.experience  ?? 50;
+
+    new Chart(canvas.getContext('2d'), {
+      type: 'radar',
+      data: {
+        labels: ['Technical', 'Soft Skills', 'Tools', 'Experience'],
+        datasets: [{
+          label: 'Your Profile',
+          data: [t, s, o, x],
+          backgroundColor: 'rgba(124, 58, 237, 0.15)',
+          borderColor: 'rgba(124, 58, 237, 0.9)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#A78BFA',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 1200, easing: 'easeOutQuart' },
+        scales: {
+          r: {
+            angleLines:  { color: 'rgba(255,255,255,0.08)' },
+            grid:        { color: 'rgba(255,255,255,0.08)' },
+            pointLabels: { color: '#94A3B8', font: { family: 'Outfit', size: 13, weight: '600' }},
+            ticks:       { display: false, stepSize: 25 },
+            suggestedMin: 0,
+            suggestedMax: 100,
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.raw}%`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  const exportBtn = document.getElementById('exportPdfBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      if (typeof window.hideGlobalLoader === 'function') window.hideGlobalLoader();
+      window.print();
+    });
+  }
+})();
+</script>
+{% endblock %}

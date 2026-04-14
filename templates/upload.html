@@ -1,88 +1,174 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Embed | Define Job Parameters</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="logo"><span>CV</span>Embed</div>
-            <div class="steps">
-                <div class="step completed">1. Add Resume</div>
-                <div class="step active">2. Specify Job</div>
-                <div class="step">3. Analyze</div>
-            </div>
-        </header>
+{% extends "base.html" %}
+{% block title %}Select Job & Algorithm — CVEmbed AI{% endblock %}
+{% block description %}Choose your AI matching algorithm and specify the job description for your resume analysis.{% endblock %}
 
-        <main>
-            <div class="glass-card">
-                <h2>Target Job Specification</h2>
-                <p style="color: var(--text-muted); margin-bottom: 30px;">Choose a matching engine and provide the job requirements to calculate your compatibility score.</p>
+{% block content %}
+<div class="page-container-narrow">
 
-                {% if error %}
-                <div class="form-error-banner" role="alert">{{ error }}</div>
-                {% endif %}
-                
-                <form action="/process_jd" method="post" enctype="multipart/form-data" id="jd-form">
-                    <div style="max-width: 400px; margin: 0 auto 40px;">
-                        <label for="model_type" style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: var(--primary-light);">Matching Algorithm</label>
-                        <select id="model_type" name="model_type">
-                            <option value="sbert" {% if active_model == 'sbert' %}selected{% endif %}>SBERT Optimizer (Deep Learning)</option>
-                            <option value="glove" {% if active_model == 'glove' %}selected{% endif %}>GloVe Semantic Vectoring</option>
-                            <option value="doc2vec" {% if active_model == 'doc2vec' %}selected{% endif %}>Doc2Vec Document Embedding</option>
-                        </select>
-                    </div>
-
-                    <div class="upload-wrapper">
-                        <div class="upload-box" onclick="document.getElementById('jd_file').click()">
-                            <input type="file" id="jd_file" name="jd_file" accept=".pdf,.docx,.txt" style="display: none;">
-                            <span class="upload-icon">📋</span>
-                            <p class="upload-title">Import Requirements</p>
-                            <p class="upload-subtitle">PDF, DOCX or TXT</p>
-                        </div>
-                        
-                        <div class="or-divider">OR</div>
-                        
-                        <div class="text-input-area">
-                            <textarea id="jd_text" name="jd_text" placeholder="Paste the job description or specific requirements here..."></textarea>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center;">
-                        <button type="submit" class="btn-primary" id="jd-submit">
-                            Run AI Intelligence Match <span>✨</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </main>
-
-        <footer>
-            <p>&copy; 2025 CVEmbed AI. Precision Resume Matching Engine.</p>
-        </footer>
+  <!-- ===== Steps Bar ===== -->
+  <div class="steps-bar">
+    <div class="step-item completed">
+      <div class="step-circle">✓</div>
+      <span class="step-label">Add Resume</span>
     </div>
-    <script>
-        (function () {
-            var form = document.getElementById('jd-form');
-            var btn = document.getElementById('jd-submit');
-            if (!form || !btn) return;
-            form.addEventListener('submit', function (e) {
-                var file = document.getElementById('jd_file');
-                var text = document.getElementById('jd_text');
-                var hasFile = file && file.files && file.files.length > 0;
-                var hasText = text && text.value.trim().length > 0;
-                if (!hasFile && !hasText) {
-                    e.preventDefault();
-                    alert('Please paste a job description or choose a JD file (PDF, DOCX, or TXT) before running the match.');
-                    return;
-                }
-                btn.disabled = true;
-                btn.innerHTML = 'Analyzing…';
-            });
-        })();
-    </script>
-</body>
-</html>
+    <div class="step-connector completed"></div>
+    <div class="step-item active">
+      <div class="step-circle">2</div>
+      <span class="step-label">Specify Job</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">3</div>
+      <span class="step-label">Get Results</span>
+    </div>
+  </div>
+
+  <!-- ===== Main Card ===== -->
+  <div class="glass-card saas-card stagger-1">
+    <h2 class="panel-title">Target Job Description</h2>
+    <p class="panel-subtext">
+      Paste or upload the job description, then choose the AI engine to power your match analysis.
+    </p>
+
+    {% if error %}
+      <div class="form-error-banner" role="alert">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form action="{{ url_for('process_jd_route') }}" method="post"
+          enctype="multipart/form-data" id="jdForm" novalidate>
+
+      <!-- ===== Algorithm Selection ===== -->
+      <div class="section-spacer">
+        <p class="form-label mb-14">Choose Matching Algorithm</p>
+        <div class="algo-grid">
+
+          <div class="algo-card">
+            <input type="radio" id="algo-sbert" name="model_type" value="sbert"
+                   {% if active_model == 'sbert' %}checked{% endif %}>
+            <label for="algo-sbert">
+              <span class="algo-icon">🧠</span>
+              <span class="algo-name">SBERT</span>
+              <span class="algo-desc">Deep learning sentence embeddings — highest accuracy</span>
+            </label>
+          </div>
+
+          <div class="algo-card">
+            <input type="radio" id="algo-glove" name="model_type" value="glove"
+                   {% if active_model == 'glove' or not active_model %}checked{% endif %}>
+            <label for="algo-glove">
+              <span class="algo-icon">🔢</span>
+              <span class="algo-name">GloVe</span>
+              <span class="algo-desc">Semantic word vectors — fast &amp; robust</span>
+            </label>
+          </div>
+
+          <div class="algo-card">
+            <input type="radio" id="algo-doc2vec" name="model_type" value="doc2vec"
+                   {% if active_model == 'doc2vec' %}checked{% endif %}>
+            <label for="algo-doc2vec">
+              <span class="algo-icon">📄</span>
+              <span class="algo-name">Doc2Vec</span>
+              <span class="algo-desc">Full document embeddings — great for long JDs</span>
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===== JD Upload ===== -->
+      <div class="upload-wrapper">
+
+        <div class="upload-zone" id="jdUploadZone" role="button" tabindex="0"
+             onclick="document.getElementById('jd_file').click()"
+             onkeypress="if(event.key==='Enter')document.getElementById('jd_file').click()"
+             aria-label="Click to upload job description file">
+          <input type="file" id="jd_file" name="jd_file"
+                 accept=".pdf,.docx,.txt" style="display:none;"
+                 onchange="showJdFile(this)">
+          <div class="upload-zone-icon" id="jdIcon">📋</div>
+          <p class="upload-zone-title" id="jdTitle">Upload Job Description</p>
+          <p class="upload-zone-sub">PDF · DOCX · TXT</p>
+          <p class="upload-zone-filename" id="jdFileName" style="display:none;"></p>
+        </div>
+
+        <div class="or-divider">OR</div>
+
+        <div>
+          <textarea
+            class="form-input"
+            id="jd_text"
+            name="jd_text"
+            placeholder="Paste the full job description here…&#10;&#10;Include required skills, responsibilities, and qualifications."
+            style="min-height: 180px;"
+          ></textarea>
+        </div>
+
+      </div><!-- /.upload-wrapper -->
+
+      <div class="text-center">
+        <button type="submit" class="btn btn-primary btn-lg cta-analyze" id="jdSubmitBtn">
+          Run AI Analysis ✨
+        </button>
+        <p class="helper-note">
+          This may take 15–30 seconds while our AI models process your content.
+        </p>
+      </div>
+
+    </form>
+  </div><!-- /.glass-card -->
+
+</div><!-- /.page-container-narrow -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function showJdFile(input) {
+    const display = document.getElementById('jdFileName');
+    const icon    = document.getElementById('jdIcon');
+    const title   = document.getElementById('jdTitle');
+    if (input.files && input.files[0]) {
+      if (display) { display.textContent = '✓ ' + input.files[0].name; display.style.display = 'block'; }
+      if (icon)  icon.textContent = '✅';
+      if (title) title.textContent = 'File selected';
+    }
+  }
+
+  // Drag & Drop
+  const jdZone  = document.getElementById('jdUploadZone');
+  const jdInput = document.getElementById('jd_file');
+  if (jdZone && jdInput) {
+    jdZone.addEventListener('dragover', (e) => { e.preventDefault(); jdZone.classList.add('drag-over'); });
+    jdZone.addEventListener('dragleave', () => jdZone.classList.remove('drag-over'));
+    jdZone.addEventListener('drop', (e) => {
+      e.preventDefault(); jdZone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) { jdInput.files = e.dataTransfer.files; showJdFile(jdInput); }
+    });
+  }
+
+  // Submit validation + lock
+  const jdForm = document.getElementById('jdForm');
+  const jdBtn  = document.getElementById('jdSubmitBtn');
+  if (jdForm && jdBtn) {
+    jdForm.addEventListener('submit', (e) => {
+      const hasFile = jdInput && jdInput.files && jdInput.files.length > 0;
+      const textEl  = document.getElementById('jd_text');
+      const hasText = textEl && textEl.value.trim().length > 0;
+      if (!hasFile && !hasText) {
+        e.preventDefault();
+        const existing = document.querySelector('.form-error-banner');
+        if (existing) existing.remove();
+        const err = document.createElement('div');
+        err.className = 'form-error-banner'; err.setAttribute('role','alert');
+        err.textContent = '⚠️ Please paste a job description or upload a file before running the analysis.';
+        jdForm.prepend(err);
+        return;
+      }
+      jdBtn.disabled = true;
+      jdBtn.innerHTML = 'Analysing… ⏳ <small style="font-weight:400">(may take ~30s)</small>';
+      if (typeof window.showGlobalLoader === 'function') {
+        window.showGlobalLoader('Running AI matching and generating insights...');
+      }
+    });
+  }
+</script>
+{% endblock %}

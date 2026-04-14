@@ -1,59 +1,187 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Embed | AI Resume Intelligence</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="logo"><span>CV</span>Embed</div>
-            <div class="steps">
-                <div class="step active">1. Add Resume</div>
-                <div class="step">2. Specify Job</div>
-                <div class="step">3. Analyze</div>
-            </div>
-        </header>
+{% extends "base.html" %}
+{% block title %}CVEmbed AI | AI-Powered Resume Intelligence{% endblock %}
+{% block description %}Upload your resume and get instant AI-powered analysis, job role matching, and LinkedIn job recommendations.{% endblock %}
 
-        <main>
-            <div class="glass-card">
-                <h2>Unlock your profile's potential</h2>
-                <p style="color: var(--text-muted); margin-bottom: 40px;">Our AI analyzes your experience against industry standards and specific job requirements to give you the competitive edge.</p>
+{% block content %}
+<!-- ===== Hero Section ===== -->
+<div class="hero" id="hero-section">
+  <div class="hero-eyebrow">✨ AI-Powered Resume Intelligence</div>
+  <h1>
+    Land your <span class="gradient-text">dream role</span><br>
+    with AI-driven insights
+  </h1>
+  <p class="hero-sub">
+    Upload your resume and get real-time skill gap analysis, role eligibility scoring,
+    and live job matches from LinkedIn &amp; Indeed — all in seconds.
+  </p>
 
-                {% if error %}
-                <div class="form-error-banner" role="alert">{{ error }}</div>
-                {% endif %}
-                
-                <form action="/process_resume" method="post" enctype="multipart/form-data">
-                    <div class="upload-wrapper">
-                        <div class="upload-box" onclick="document.getElementById('resume_file').click()">
-                            <input type="file" id="resume_file" name="resume_file" accept=".pdf,.docx,.txt" style="display: none;">
-                            <span class="upload-icon">📄</span>
-                            <p class="upload-title">Upload Resume</p>
-                            <p class="upload-subtitle">Supports PDF & DOCX</p>
-                        </div>
-                        
-                        <div class="or-divider">OR</div>
-                        
-                        <div class="text-input-area">
-                            <textarea id="resume_text" name="resume_text" placeholder="Paste your resume content here..."></textarea>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center;">
-                        <button type="submit" class="btn-primary">
-                            Continue Analysis <span>→</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </main>
+  <div class="feature-pills">
+    <span class="feature-pill">🧠 3 AI Models</span>
+    <span class="feature-pill">💼 20+ Job Roles</span>
+    <span class="feature-pill">🔗 LinkedIn Links</span>
+    <span class="feature-pill">🔒 Secure Auth</span>
+    <span class="feature-pill">📊 History Tracking</span>
+  </div>
+</div>
 
-        <footer>
-            <p>&copy; 2025 CVEmbed AI. Precision Resume Matching Engine.</p>
-        </footer>
+<!-- ===== Steps Bar ===== -->
+<div class="page-container-narrow" style="padding-top: 0;">
+  <div class="steps-bar">
+    <div class="step-item active">
+      <div class="step-circle">1</div>
+      <span class="step-label">Add Resume</span>
     </div>
-</body>
-</html>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">2</div>
+      <span class="step-label">Specify Job</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">3</div>
+      <span class="step-label">Get Results</span>
+    </div>
+  </div>
+
+  <!-- ===== Upload Card ===== -->
+  <div class="glass-card saas-card stagger-1">
+    <h2 class="panel-title">Upload Your Resume</h2>
+    <p class="panel-subtext">
+      We'll analyse your skills and match you against 20+ job categories.
+      PDF and DOCX preferred — or paste your text below.
+    </p>
+
+    {% if error %}
+      <div class="form-error-banner" role="alert">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form action="{{ url_for('process_resume_route') }}" method="post"
+          enctype="multipart/form-data" id="resumeForm" novalidate>
+
+      <div class="upload-wrapper" id="uploadWrapper">
+
+        <!-- File Zone -->
+        <div class="upload-zone" id="uploadZone" role="button" tabindex="0"
+             onclick="document.getElementById('resume_file').click()"
+             onkeypress="if(event.key==='Enter')document.getElementById('resume_file').click()"
+             aria-label="Click to upload resume file">
+          <input type="file" id="resume_file" name="resume_file"
+                 accept=".pdf,.docx,.txt" style="display:none;"
+                 onchange="showFileName(this)">
+          <div class="upload-zone-icon" id="uploadIcon">📄</div>
+          <p class="upload-zone-title" id="uploadTitle">Click or drag to upload</p>
+          <p class="upload-zone-sub">PDF · DOCX · TXT (max 5 MB)</p>
+          <p class="upload-zone-filename" id="fileNameDisplay" style="display:none;"></p>
+        </div>
+
+        <!-- Divider -->
+        <div class="or-divider">OR</div>
+
+        <!-- Text Area -->
+        <div>
+          <textarea
+            class="form-input"
+            id="resume_text"
+            name="resume_text"
+            placeholder="Paste your resume content here…&#10;&#10;Include your skills, experience, education, and achievements."
+            style="min-height: 180px;"
+          ></textarea>
+        </div>
+
+      </div><!-- /.upload-wrapper -->
+
+      <div class="text-center">
+        <button type="submit" class="btn btn-primary btn-lg cta-analyze" id="resumeSubmitBtn">
+          Continue to Job Matching <span>→</span>
+        </button>
+        {% if not current_user %}
+          <p style="margin-top: 14px; font-size: 0.82rem; color: var(--text-subtle);">
+            <a href="{{ url_for('auth.login') }}" style="color: var(--primary-light); text-decoration: underline; text-underline-offset: 3px;">Sign in</a>
+            to save your history — or continue as a guest.
+          </p>
+        {% endif %}
+      </div>
+
+    </form>
+  </div><!-- /.glass-card -->
+
+  <!-- ===== Feature Cards ===== -->
+  <div class="features-grid stagger-2" id="features">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h3>3 AI Matching Engines</h3>
+      <p>Choose between SBERT deep learning, GloVe semantic vectors, or Doc2Vec document embeddings.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Role Eligibility Engine</h3>
+      <p>Instantly discover which of 20+ job roles your resume aligns with, ranked by match percentage.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔗</div>
+      <h3>Live Job Suggestions</h3>
+      <p>Get direct LinkedIn, Indeed, and Naukri links tailored to your top job role match.</p>
+    </div>
+  </div>
+
+</div><!-- /.page-container-narrow -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Show selected file name
+  function showFileName(input) {
+    const display = document.getElementById('fileNameDisplay');
+    const icon    = document.getElementById('uploadIcon');
+    const title   = document.getElementById('uploadTitle');
+    if (input.files && input.files[0]) {
+      const name = input.files[0].name;
+      if (display) { display.textContent = '✓ ' + name; display.style.display = 'block'; }
+      if (icon)  icon.textContent = '✅';
+      if (title) title.textContent = 'File selected';
+    }
+  }
+
+  // Drag and Drop
+  const zone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('resume_file');
+  if (zone && fileInput) {
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        showFileName(fileInput);
+      }
+    });
+  }
+
+  // Prevent double-submit
+  const resumeForm = document.getElementById('resumeForm');
+  const resumeBtn  = document.getElementById('resumeSubmitBtn');
+  if (resumeForm && resumeBtn) {
+    resumeForm.addEventListener('submit', (e) => {
+      const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+      const textArea = document.getElementById('resume_text');
+      const hasText  = textArea && textArea.value.trim().length > 0;
+      if (!hasFile && !hasText) {
+        e.preventDefault();
+        document.querySelector('.form-error-banner')?.remove();
+        const err = document.createElement('div');
+        err.className = 'form-error-banner';
+        err.setAttribute('role','alert');
+        err.textContent = '⚠️ Please upload a file or paste your resume text before continuing.';
+        resumeForm.prepend(err);
+        return;
+      }
+      resumeBtn.disabled = true;
+      resumeBtn.innerHTML = 'Uploading… ⏳';
+      if (typeof window.showGlobalLoader === 'function') {
+        window.showGlobalLoader('Uploading and parsing your resume...');
+      }
+    });
+  }
+</script>
+{% endblock %}

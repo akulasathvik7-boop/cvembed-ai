@@ -2,6 +2,8 @@ import joblib
 import os
 import logging
 import numpy as np
+import re
+from difflib import SequenceMatcher
 from sklearn.metrics.pairwise import cosine_similarity
 from config import MODEL_CONFIG
 from utils.text_processing import tokenize_text
@@ -16,6 +18,44 @@ JOB_EMBEDDINGS = {}
 
 # Lazy model loading
 _LOADED_MODELS = {}
+
+
+def _simple_tokens(text: str):
+    """Tokenizer fallback that does not depend on external NLTK resources."""
+    if not isinstance(text, str):
+        return set()
+    words = re.findall(r"[a-zA-Z][a-zA-Z0-9\+\#\.\-]{1,}", text.lower())
+    return {w for w in words if len(w) > 2}
+
+
+def _fallback_similarity_score(resume_text: str, jd_text: str) -> float:
+    """
+    Robust lexical fallback (0–100) when embedding models fail or return zero.
+    Combines Jaccard overlap and directional containment.
+    """
+    resume_text = (resume_text or "").strip()
+    jd_text = (jd_text or "").strip()
+    if not resume_text or not jd_text:
+        return 0.0
+
+    a = _simple_tokens(resume_text)
+    b = _simple_tokens(jd_text)
+    if not a or not b:
+        # Character-level safety net when tokenization is sparse/noisy.
+        ratio = SequenceMatcher(None, resume_text.lower(), jd_text.lower()).ratio()
+        return round(max(5.0, min(100.0, ratio * 100.0)), 2)
+
+    inter = len(a & b)
+    union = len(a | b)
+    jaccard = inter / max(1, union)
+    containment = inter / max(1, len(b))  # how much JD vocabulary is covered by resume
+    score = (0.4 * jaccard) + (0.6 * containment)
+    pct = score * 100.0
+    # Avoid misleading hard-zero for valid non-empty text pairs.
+    if pct <= 0.01:
+        ratio = SequenceMatcher(None, resume_text.lower(), jd_text.lower()).ratio()
+        pct = max(5.0, ratio * 100.0)
+    return round(max(0.0, min(100.0, pct)), 2)
 
 def get_model(model_type):
     """Lazy load model on demand"""
@@ -74,27 +114,35 @@ def calculate_similarity(resume_text, jd_text, model_type=None):
     
     model = get_model(model_type)
     if model is None:
-        logger.error(f"Model {model_type} not available")
-        return 0.0
+        logger.error(f"Model {model_type} not available, using lexical fallback.")
+        return _fallback_similarity_score(resume_text, jd_text)
     
     try:
+        score = 0.0
         if model_type == "sbert":
             from model.inference import sbert_inference
-            return sbert_inference.calculate_similarity(model, resume_text, jd_text)
+            score = sbert_inference.calculate_similarity(model, resume_text, jd_text)
         elif model_type == "glove":
             from model.inference import glove_inference
-            return glove_inference.calculate_text_similarity(model, resume_text, jd_text)
+            score = glove_inference.calculate_text_similarity(model, resume_text, jd_text)
         elif model_type == "doc2vec":
             from model.inference import doc2vec_inference
             # Use the improved Doc2Vec similarity function
-            return doc2vec_inference.calculate_similarity(model, resume_text, jd_text)
+            score = doc2vec_inference.calculate_similarity(model, resume_text, jd_text)
 
         else:
             logger.error(f"Unknown model type: {model_type}")
-            return 0.0
+            score = 0.0
+
+        # Prevent false-zero outcomes for real text.
+        if (not score or float(score) <= 0.01) and (resume_text or "").strip() and (jd_text or "").strip():
+            fallback = _fallback_similarity_score(resume_text, jd_text)
+            logger.info(f"Embedding score near zero; using fallback similarity: {fallback}")
+            return fallback
+        return round(float(score), 2)
     except Exception as e:
-        logger.error(f"Similarity calculation error: {e}")
-        return 0.0
+        logger.error(f"Similarity calculation error: {e}. Using fallback.", exc_info=True)
+        return _fallback_similarity_score(resume_text, jd_text)
 
     
 def get_top_job_matches(resume_text, model_type=None, top_n=5):
